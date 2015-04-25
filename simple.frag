@@ -1,6 +1,7 @@
 #version 330
+out vec4 out_col;
 uniform vec4 fcolor;
 void main( void )
-{
-    gl_FragColor = fcolor;
+{    
+	out_col = fcolor; //gl_FragColor is supposed to be depricated
 }

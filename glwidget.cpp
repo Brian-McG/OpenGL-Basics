@@ -3,6 +3,13 @@
 #include <QCoreApplication>
 #include <QKeyEvent>
 #include <stdexcept>
+#include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtx/transform.hpp"
+#include <string>
+#include <fstream>
+#include <vector>
+#include <iostream>
+#include <memory>
 
 #define VERT_SHADER ":/simple.vert"
 #define FRAG_SHADER ":/simple.frag"
@@ -48,9 +55,25 @@ void GLWidget::initializeGL()
     glBindVertexArray(VAO);
 
     // We need us some vertex data. Start simple with a triangle ;-)
-    float points[] = { -0.5f, -0.5f, 0.0f, 1.0f,
-                        0.5f, -0.5f, 0.0f, 1.0f,
-                        0.0f,  0.5f, 0.0f, 1.0f };
+    float points[] = { -0.1f, -0.1f, 0.0f, 1.0f,
+                        0.1f, -0.1f, 0.0f, 1.0f,
+                        0.0f,  0.1f, 0.0f, 1.0f,
+                       -0.9f, 0.9f, 0.0f, 1.0f,
+                       -0.8f, 0.9f, 0.0f, 1.0f,
+                        0.0f,  -0.5f, 0.0f, 1.0f};
+
+    std::unique_ptr<glm::vec4[]> test = std::unique_ptr<glm::vec4[]>(new glm::vec4[6]);
+    test[0] = glm::vec4(-0.1f, -0.1f, 0.0f, 1.0f);
+    test[1] = glm::vec4(0.1f, -0.1f, 0.0f, 1.0f);
+    test[2] = glm::vec4(0.0f,  0.1f, 0.0f, 1.0f);
+    // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit to 100 units
+    glm::mat4 Projection = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
+
+    // Camera Matrix
+    glm::mat4 View = glm::lookAt(glm::vec3(0,0,-1),glm::vec3(0,0,0), glm::vec3(0,1,0));
+    glm::mat4 Model = glm::mat4(1.0f);
+    glm::mat4 MVP = Projection * View * Model;
+
     m_vertexBuffer.create();
     m_vertexBuffer.setUsagePattern( QOpenGLBuffer::StaticDraw );
     if ( !m_vertexBuffer.bind() )
@@ -58,7 +81,7 @@ void GLWidget::initializeGL()
         qWarning() << "Could not bind vertex buffer to the context";
         return;
     }
-    m_vertexBuffer.allocate( points, 3 * 4 * sizeof( float ) );
+    m_vertexBuffer.allocate( test.get(), 6 * sizeof(glm::vec4) );
 
     qDebug() << "Attempting vertex shader load from " << VERT_SHADER;
     qDebug() << "Attempting fragment shader load from " << FRAG_SHADER;
@@ -78,6 +101,45 @@ void GLWidget::initializeGL()
     m_shader.setAttributeBuffer( "vertex", GL_FLOAT, 0, 4 );
     m_shader.enableAttributeArray( "vertex" );
     glUniform4f(glGetUniformLocation(m_shader.programId(),"fcolor"),0.0f,1.0f,0.0f,1.0f);
+    GLuint MatrixID = glGetUniformLocation(m_shader.programId(), "MVP");
+    glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
+
+}
+
+GLWidget::stlData GLWidget::loadSTLFile(const std::string & fileName) {
+    std::ifstream fileStream;
+    fileStream.open(fileName.c_str(), std::ios_base::in | std::ios::binary);
+    if(fileStream.fail())
+    {
+       std::cerr << "An error occurred accessing the file "<< fileName <<", does the file exist?" << std::endl;
+       fileStream.close();
+       return std::move(GLWidget::stlData());
+    }
+    // Ignore header data
+    fileStream.ignore(80,EOF);
+
+    unsigned int numTriangles;
+    fileStream.read((char *)&numTriangles, 4);
+    if(fileStream.fail())
+    {
+       std::cerr << "An error occurred reading from file, " << fileName << std::endl;
+       fileStream.close();
+       return std::move(GLWidget::stlData());
+    }
+    GLWidget::stlData model;
+    model.normals = std::unique_ptr<glm::vec3[]>(new glm::vec3[1]);
+    model.vertices = std::unique_ptr<glm::vec4[]>(new glm::vec4[1 * 3]);
+    for(unsigned int i = 0; i < numTriangles; ++i) {
+        float normX, normY, normZ, x, y, z;
+        fileStream.read((char*)&normX,32);
+        fileStream.read((char*)&normY,32);
+        fileStream.read((char*)&normZ,32);
+        fileStream.read((char*)&x,32);
+        fileStream.read((char*)&y,32);
+        fileStream.read((char*)&z,32);
+        fileStream.ignore(2,EOF);
+    }
+
 }
 
 void GLWidget::resizeGL( int w, int h )
@@ -92,7 +154,7 @@ void GLWidget::paintGL()
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
     // Draw stuff
-    glDrawArrays( GL_TRIANGLES, 0, 3 );
+    glDrawArrays( GL_TRIANGLES, 0, 6);
 }
 
 void GLWidget::keyPressEvent( QKeyEvent* e )
