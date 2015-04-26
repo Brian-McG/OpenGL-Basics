@@ -4,7 +4,6 @@
 #include "glheaders.h" // Must be included before QT opengl headers
 #include "glm/glm.hpp"
 #include <QGLWidget>
-
 #include <QOpenGLBuffer>
 #include <QOpenGLShaderProgram>
 
@@ -19,12 +18,12 @@ public:
         std::unique_ptr<glm::vec4[]> vertices;
         std::unique_ptr<glm::vec3[]> normals;
     };
+    void loadSTLFile(const std::string & fileName);
 
 protected:
     virtual void initializeGL();
     virtual void resizeGL( int w, int h );
-    virtual void paintGL();
-    virtual stlData loadSTLFile(const std::string & fileName);
+    virtual void paintGL();   
     virtual void mouseMoveEvent(QMouseEvent* m);
     virtual void keyPressEvent( QKeyEvent* e );
 

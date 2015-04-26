@@ -61,7 +61,7 @@ void GLWidget::initializeGL()
                        -0.8f, 0.9f, 0.0f, 1.0f,
                         0.0f,  -0.5f, 0.0f, 1.0f};
 
-    //data = loadSTLFile("/home/brian/CSC3020H_assignment-2/bunny.stl");
+   // loadSTLFile("/home/brian/CSC3020H_assignment-2/bunny.stl");
 
     data = GLWidget::stlData();
     data.numTriangles = 12;
@@ -148,14 +148,14 @@ void GLWidget::initializeGL()
     scaleMat = std::move(glm::mat4(1.0f));
 }
 
-GLWidget::stlData GLWidget::loadSTLFile(const std::string & fileName) {
+void GLWidget::loadSTLFile(const std::string & fileName) {
     std::ifstream fileStream;
     fileStream.open(fileName, std::ios_base::in | std::ios::binary);
     if(fileStream.fail())
     {
        qWarning() << "An error occurred accessing the file does the file exist?";
        fileStream.close();
-       return std::move(GLWidget::stlData());
+       data = std::move(GLWidget::stlData());
     }
 
     //DELETE THIS
@@ -172,7 +172,7 @@ GLWidget::stlData GLWidget::loadSTLFile(const std::string & fileName) {
     {
        qWarning() << "An error occurred reading from file";
        fileStream.close();
-       return std::move(GLWidget::stlData());
+       data = std::move(GLWidget::stlData());
     }
 
     GLWidget::stlData model;
@@ -196,11 +196,18 @@ GLWidget::stlData GLWidget::loadSTLFile(const std::string & fileName) {
     //    qDebug() << "TEST5" << y;
         fileStream.read((char*)&z,4);
     //    qDebug() << "TEST6" << z;
+        if(i==0 || i == 1) {
+            qDebug() << x;
+            qDebug() << y;
+            qDebug() << z;
+        }
         if(fileStream.fail())
         {
            qWarning() << "An error occurred reading from file";
            fileStream.close();
-           return std::move(GLWidget::stlData());
+           data = std::move(GLWidget::stlData());
+           m_vertexBuffer.allocate( data.vertices.get(), data.numTriangles * 3 * sizeof(glm::vec4) );
+           return;
         }
 
         // Normal Vector
@@ -209,9 +216,7 @@ GLWidget::stlData GLWidget::loadSTLFile(const std::string & fileName) {
 //        qDebug() << "y1" << y;
        // qDebug() << "z1" << z;
         // Vertex 1
-        x=x*10.0f;
-        y=y*10.0f;
-        z=z*10.0f;
+
         model.vertices[i] = glm::vec4(x,y,z,1.0f);
 
         // Vertex 2
@@ -219,15 +224,20 @@ GLWidget::stlData GLWidget::loadSTLFile(const std::string & fileName) {
         fileStream.read((char*)&x,4);
         fileStream.read((char*)&y,4);
         fileStream.read((char*)&z,4);
+        if(i==0 || i == 1) {
+            qDebug() << x;
+            qDebug() << y;
+            qDebug() << z;
+        }
         if(fileStream.fail())
         {
            qWarning() << "An error occurred reading from file";
            fileStream.close();
-           return std::move(GLWidget::stlData());
+           data = std::move(GLWidget::stlData());
+           m_vertexBuffer.allocate( data.vertices.get(), data.numTriangles * 3 * sizeof(glm::vec4) );
+           return;
         }
-        x=x*10.0f;
-        y=y*10.0f;
-        z=z*10.0f;
+
         model.vertices[i+1] = glm::vec4(x,y,z,1.0f);
         //qDebug() << "x2" << x;
       //  qDebug() << "y2" << y;
@@ -237,18 +247,23 @@ GLWidget::stlData GLWidget::loadSTLFile(const std::string & fileName) {
         fileStream.read((char*)&x,4);
         fileStream.read((char*)&y,4);
         fileStream.read((char*)&z,4);
+        if(i==0 || i == 1) {
+            qDebug() << x;
+            qDebug() << y;
+            qDebug() << z;
+        }
         if(fileStream.fail())
         {
            qWarning() << "An error occurred reading from file";
            fileStream.close();
-           return std::move(GLWidget::stlData());
+           data = std::move(GLWidget::stlData());
+           m_vertexBuffer.allocate( data.vertices.get(), data.numTriangles * 3 * sizeof(glm::vec4) );
+           return;
         }
    //     qDebug() << "x3" << x;
    //     qDebug() << "y3" << y;
    //     qDebug() << "z3" << z;
-        x=x*10.0f;
-        y=y*10.0f;
-        z=z*10.0f;
+
         model.vertices[i+2] = glm::vec4(x,y,z,1.0f);
 
         // Attribute byte count
@@ -258,7 +273,9 @@ GLWidget::stlData GLWidget::loadSTLFile(const std::string & fileName) {
         unsigned short test2 =-1;
         fileStream.read((char*)&test2,2);
     }
-    return std::move(model);
+    data = std::move(model);
+    m_vertexBuffer.allocate( data.vertices.get(), data.numTriangles * 3 * sizeof(glm::vec4) );
+    return;
 }
 
 void GLWidget::resizeGL( int w, int h )
