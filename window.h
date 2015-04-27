@@ -1,9 +1,15 @@
+// Brian Mc George
+// MCGBRI004
+// 26-04-2015
+
 #ifndef WINDOW_H
 #define WINDOW_H
 
 #include <QMainWindow>
+#include <memory>
+#include <vector>
 
-//Declare class
+//Forward declare class
 class GLWidget;
 class QAction;
 class QMenu;
@@ -12,15 +18,23 @@ class window : public QMainWindow
 {
     Q_OBJECT
 public:
-
+    virtual ~window();
     explicit window(QWidget *parent = 0);
+
 private slots:
     void open();
-private:
+    void newWindow();
 
+private:
+    void addActions();
+    void addMenus();
+    void addConections();
+    void setUpWidget();
     QMenu *fileMenu;
+    QAction *newAction;
     QAction *openAction;
     GLWidget *glWidget;
+    std::vector<window *> windows;
 };
 
 #endif // WINDOW_H

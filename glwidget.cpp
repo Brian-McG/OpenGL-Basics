@@ -1,5 +1,8 @@
-#include "glwidget.h"
+// Brian Mc George
+// MCGBRI004
+// 25-04-2015
 
+#include "glwidget.h"
 #include <QCoreApplication>
 #include <QKeyEvent>
 #include <stdexcept>
@@ -13,6 +16,7 @@
 
 #define VERT_SHADER ":/simple.vert"
 #define FRAG_SHADER ":/simple.frag"
+#define BUNNY_LOCATION "bunny.stl"
 
 GLWidget::GLWidget( const QGLFormat& format, QWidget* parent )
     : QGLWidget( format, parent ),
@@ -61,8 +65,8 @@ void GLWidget::initializeGL()
                        -0.8f, 0.9f, 0.0f, 1.0f,
                         0.0f,  -0.5f, 0.0f, 1.0f};
 
-   // loadSTLFile("/home/brian/CSC3020H_assignment-2/bunny.stl");
-
+    loadSTLFile(BUNNY_LOCATION);
+/*
     data = GLWidget::stlData();
     data.numTriangles = 12;
     data.vertices = std::unique_ptr<glm::vec4[]>(new glm::vec4[12*3]);
@@ -102,7 +106,7 @@ void GLWidget::initializeGL()
     data.vertices[33] = glm::vec4(1.0f,1.0f,1.0f,1.0f);
     data.vertices[34] = glm::vec4(-1.0f,1.0f,1.0f,1.0f);
     data.vertices[35] = glm::vec4(1.0f,-1.0f,1.0f,1.0f);
-
+*/
     qDebug() << "GETS HERE->";
     // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit to 100 units
     Projection = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
@@ -173,6 +177,7 @@ void GLWidget::loadSTLFile(const std::string & fileName) {
        qWarning() << "An error occurred reading from file";
        fileStream.close();
        data = std::move(GLWidget::stlData());
+       return;
     }
 
     GLWidget::stlData model;

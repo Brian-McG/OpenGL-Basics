@@ -1,3 +1,8 @@
+// Brian Mc George
+// MCGBRI004
+// 25-04-2015
+// Provided header
+
 #ifndef GLHEADERS_H_
 #define GLHEADERS_H_
 

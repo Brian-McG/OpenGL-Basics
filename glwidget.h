@@ -1,3 +1,7 @@
+// Brian Mc George
+// MCGBRI004
+// 25-04-2015
+
 #ifndef GLWIDGET_H
 #define GLWIDGET_H
 
