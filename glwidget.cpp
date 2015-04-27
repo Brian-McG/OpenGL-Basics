@@ -180,6 +180,7 @@ void GLWidget::loadSTLFile(const std::string & fileName) {
     qDebug() << "numTrianles " << numTriangles;
     model.normals = std::unique_ptr<glm::vec3[]>(new glm::vec3[numTriangles]);
     model.vertices = std::unique_ptr<glm::vec4[]>(new glm::vec4[numTriangles * 3]);
+    unsigned int triCounter = 0;
     for(unsigned int i = 0; i < numTriangles; ++i) {
         float normX, normY, normZ, x, y, z;
      //   qDebug() << "TEST0";
@@ -217,7 +218,7 @@ void GLWidget::loadSTLFile(const std::string & fileName) {
        // qDebug() << "z1" << z;
         // Vertex 1
 
-        model.vertices[i] = glm::vec4(x,y,z,1.0f);
+        model.vertices[triCounter] = glm::vec4(x,y,z,1.0f);
 
         // Vertex 2
         x=0.0f;y=0.0f;z=0.0f;
@@ -238,7 +239,7 @@ void GLWidget::loadSTLFile(const std::string & fileName) {
            return;
         }
 
-        model.vertices[i+1] = glm::vec4(x,y,z,1.0f);
+        model.vertices[triCounter+1] = glm::vec4(x,y,z,1.0f);
         //qDebug() << "x2" << x;
       //  qDebug() << "y2" << y;
       //  qDebug() << "z2" << z;
@@ -264,7 +265,7 @@ void GLWidget::loadSTLFile(const std::string & fileName) {
    //     qDebug() << "y3" << y;
    //     qDebug() << "z3" << z;
 
-        model.vertices[i+2] = glm::vec4(x,y,z,1.0f);
+        model.vertices[triCounter+2] = glm::vec4(x,y,z,1.0f);
 
         // Attribute byte count
         //fileStream.ignore(2,EOF);
@@ -272,6 +273,7 @@ void GLWidget::loadSTLFile(const std::string & fileName) {
         //TEST
         unsigned short test2 =-1;
         fileStream.read((char*)&test2,2);
+        triCounter+=3;
     }
     data = std::move(model);
     m_vertexBuffer.allocate( data.vertices.get(), data.numTriangles * 3 * sizeof(glm::vec4) );
