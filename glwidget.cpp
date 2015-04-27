@@ -147,6 +147,27 @@ void GLWidget::initializeGL()
     scaleMat = std::move(glm::mat4(1.0f));
 }
 
+void GLWidget::reset() {
+    lastX = 20000;
+    lastY = 20000;
+    xAngle = 0.0f;
+    yAngle = 0.0f;
+    zAngle = 0.0f;
+    translateX = 0.0f;
+    translateY = 0.0f;
+    translateZ = 3.0f;
+    scale = 1.0f;
+    xRotMat = glm::mat4(1.0f);
+    yRotMat = glm::mat4(1.0f);
+    zRotMat = glm::mat4(1.0f);
+    scaleMat = glm::mat4(1.0f);
+    translateMat = glm::mat4(1.0f);
+    color = glm::vec4(1.0f,1.0f,1.0f,1.0f);
+    mode = -1;
+    rotMode= -1;
+    repaint();
+}
+
 void GLWidget::loadSTLFile(const std::string & fileName) {
     std::ifstream fileStream;
     fileStream.open(fileName, std::ios_base::in | std::ios::binary);

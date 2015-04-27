@@ -23,6 +23,7 @@ public:
         std::unique_ptr<glm::vec3[]> normals;
     };
     void loadSTLFile(const std::string & fileName);
+    void reset();
 
 protected:
     virtual void initializeGL();
@@ -54,7 +55,6 @@ private:
     float rotateSpeed = 0.02f;
     int lastX;
     int lastY;
-    int lastWheel;
     float scale = 1.0f;
     float scaleSpeed = 0.02f;
     float translateX = 0.0f;

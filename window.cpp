@@ -45,17 +45,21 @@ void window::addActions() {
     openAction->setStatusTip(tr("Opens a stl file"));
     newAction = new QAction(tr("N&ew"), this);
     newAction->setStatusTip(tr("Open new window"));
+    resetAction = new QAction(tr("R&eset"), this);
+    resetAction->setStatusTip(tr("Resets the scene"));
 }
 
 void window::addMenus() {
     fileMenu = menuBar()->addMenu(tr("&File"));
     fileMenu->addAction(newAction);
     fileMenu->addAction(openAction);
+    fileMenu->addAction(resetAction);
 }
 
 void window::addConections() {
     connect(newAction, SIGNAL(triggered()), this, SLOT(newWindow()));
     connect(openAction, SIGNAL(triggered()), this, SLOT(open()));
+    connect(resetAction, SIGNAL(triggered()), this, SLOT(reset()));
 }
 
 void window::open() {
@@ -69,4 +73,8 @@ void window::newWindow() {
     windows.push_back(new window());
     windows.back()->resize(640,480);
     windows.back()->show();
+}
+
+void window::reset() {
+    glWidget->reset();
 }

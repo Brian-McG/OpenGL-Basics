@@ -24,6 +24,7 @@ public:
 private slots:
     void open();
     void newWindow();
+    void reset();
 
 private:
     void addActions();
@@ -33,6 +34,7 @@ private:
     QMenu *fileMenu;
     QAction *newAction;
     QAction *openAction;
+    QAction *resetAction;
     GLWidget *glWidget;
     std::vector<window *> windows;
 };
