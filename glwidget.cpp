@@ -57,16 +57,11 @@ void GLWidget::initializeGL()
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
 
-    // We need us some vertex data. Start simple with a triangle ;-)
-    float points[] = { -0.1f, -0.1f, 0.0f, 1.0f,
-                        0.1f, -0.1f, 0.0f, 1.0f,
-                        0.0f,  0.1f, 0.0f, 1.0f,
-                       -0.9f, 0.9f, 0.0f, 1.0f,
-                       -0.8f, 0.9f, 0.0f, 1.0f,
-                        0.0f,  -0.5f, 0.0f, 1.0f};
-
     loadSTLFile(BUNNY_LOCATION);
-/*
+
+    // If bunny fails to load, load a placeholder cube
+    if(data.numTriangles == 0) {
+    qDebug() << "The bunny failed to load, loading a placeholder cube instead.";
     data = GLWidget::stlData();
     data.numTriangles = 12;
     data.vertices = std::unique_ptr<glm::vec4[]>(new glm::vec4[12*3]);
@@ -106,15 +101,15 @@ void GLWidget::initializeGL()
     data.vertices[33] = glm::vec4(1.0f,1.0f,1.0f,1.0f);
     data.vertices[34] = glm::vec4(-1.0f,1.0f,1.0f,1.0f);
     data.vertices[35] = glm::vec4(1.0f,-1.0f,1.0f,1.0f);
-*/
-    qDebug() << "GETS HERE->";
+    }
+
     // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit to 100 units
     Projection = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
 
     // Camera Matrix
-    View = glm::lookAt(glm::vec3(0,0,5),glm::vec3(0,0,0), glm::vec3(0,1,0));
+    View = glm::lookAt(glm::vec3(0,0,3),glm::vec3(0,0,0), glm::vec3(0,1,0));
     Model = glm::mat4(1.0f);
-    MVP = Projection * View * zRotMat * yRotMat * xRotMat * Model;
+    MVP = Projection * View * translateMat * zRotMat * yRotMat * xRotMat * Model;
 
     m_vertexBuffer.create();
     m_vertexBuffer.setUsagePattern( QOpenGLBuffer::StaticDraw );
@@ -162,12 +157,8 @@ void GLWidget::loadSTLFile(const std::string & fileName) {
        data = std::move(GLWidget::stlData());
     }
 
-    //DELETE THIS
-    char header[80];
-    fileStream.read((char *)&header, 80);
-    //for(int i=0; i < 80; i++){
-  //      qDebug() << header[i];
-  //  }
+    // Ignore header
+    fileStream.ignore(80, EOF);
 
     // Number of triangles
     unsigned int numTriangles;
@@ -182,31 +173,18 @@ void GLWidget::loadSTLFile(const std::string & fileName) {
 
     GLWidget::stlData model;
     model.numTriangles = numTriangles;
-    qDebug() << "numTrianles " << numTriangles;
+    qDebug() << "Number of triangles:" << numTriangles;
     model.normals = std::unique_ptr<glm::vec3[]>(new glm::vec3[numTriangles]);
     model.vertices = std::unique_ptr<glm::vec4[]>(new glm::vec4[numTriangles * 3]);
     unsigned int triCounter = 0;
     for(unsigned int i = 0; i < numTriangles; ++i) {
         float normX, normY, normZ, x, y, z;
-     //   qDebug() << "TEST0";
         fileStream.read((char*)&normX,4);
-
-     //   qDebug() << "TEST1" << normX;
         fileStream.read((char*)&normY,4);
-      //  qDebug() << "TEST2" << normY;
         fileStream.read((char*)&normZ,4);
-      //  qDebug() << "TEST3" << normZ;
         fileStream.read((char*)&x,4);
-     //   qDebug() << "TEST4" << x;
         fileStream.read((char*)&y,4);
-    //    qDebug() << "TEST5" << y;
         fileStream.read((char*)&z,4);
-    //    qDebug() << "TEST6" << z;
-        if(i==0 || i == 1) {
-            qDebug() << x;
-            qDebug() << y;
-            qDebug() << z;
-        }
         if(fileStream.fail())
         {
            qWarning() << "An error occurred reading from file";
@@ -218,11 +196,8 @@ void GLWidget::loadSTLFile(const std::string & fileName) {
 
         // Normal Vector
         model.normals[i] = glm::vec3(normX,normY,normZ);
-        //qDebug() << "x1" << x;
-//        qDebug() << "y1" << y;
-       // qDebug() << "z1" << z;
-        // Vertex 1
 
+        // Vertex 1
         model.vertices[triCounter] = glm::vec4(x,y,z,1.0f);
 
         // Vertex 2
@@ -230,11 +205,6 @@ void GLWidget::loadSTLFile(const std::string & fileName) {
         fileStream.read((char*)&x,4);
         fileStream.read((char*)&y,4);
         fileStream.read((char*)&z,4);
-        if(i==0 || i == 1) {
-            qDebug() << x;
-            qDebug() << y;
-            qDebug() << z;
-        }
         if(fileStream.fail())
         {
            qWarning() << "An error occurred reading from file";
@@ -243,21 +213,13 @@ void GLWidget::loadSTLFile(const std::string & fileName) {
            m_vertexBuffer.allocate( data.vertices.get(), data.numTriangles * 3 * sizeof(glm::vec4) );
            return;
         }
-
         model.vertices[triCounter+1] = glm::vec4(x,y,z,1.0f);
-        //qDebug() << "x2" << x;
-      //  qDebug() << "y2" << y;
-      //  qDebug() << "z2" << z;
+
         // Vertex 3
         x=0.0f;y=0.0f;z=0.0f;
         fileStream.read((char*)&x,4);
         fileStream.read((char*)&y,4);
         fileStream.read((char*)&z,4);
-        if(i==0 || i == 1) {
-            qDebug() << x;
-            qDebug() << y;
-            qDebug() << z;
-        }
         if(fileStream.fail())
         {
            qWarning() << "An error occurred reading from file";
@@ -266,18 +228,11 @@ void GLWidget::loadSTLFile(const std::string & fileName) {
            m_vertexBuffer.allocate( data.vertices.get(), data.numTriangles * 3 * sizeof(glm::vec4) );
            return;
         }
-   //     qDebug() << "x3" << x;
-   //     qDebug() << "y3" << y;
-   //     qDebug() << "z3" << z;
-
         model.vertices[triCounter+2] = glm::vec4(x,y,z,1.0f);
 
         // Attribute byte count
-        //fileStream.ignore(2,EOF);
+        fileStream.ignore(2,EOF);
 
-        //TEST
-        unsigned short test2 =-1;
-        fileStream.read((char*)&test2,2);
         triCounter+=3;
     }
     data = std::move(model);
@@ -295,24 +250,95 @@ void GLWidget::resizeGL( int w, int h )
 
 void GLWidget::paintGL()
 {
-    MVP = Projection * View * scaleMat * zRotMat * yRotMat * xRotMat * Model;
+    // (Re)calculate model view projection
+    View = glm::lookAt(glm::vec3(translateX,translateY,translateZ),glm::vec3(translateX,translateY,translateZ-3), glm::vec3(0,1,0));
+    MVP = Projection  * View *  zRotMat * yRotMat * xRotMat * scaleMat * Model;
     GLuint MatrixID = glGetUniformLocation(m_shader.programId(), "MVP");
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
     glUniform4f(glGetUniformLocation(m_shader.programId(),"fcolor"),color[0],color[1],color[2],color[3]);
+
     // Clear the buffer with the current clearing color
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
-    // Draw stuff
+    // Draw triangles
     glDrawArrays( GL_TRIANGLES, 0, data.numTriangles * 3);
-    /*
-    for(int i=0; i<data.numTriangles * 3; i+=3) {
-        glDrawArrays( GL_LINE_LOOP, i, 3);
-    }
-    */
-    //glDrawArrays( GL_LINES, 0, data.numTriangles * 3);
 }
+
+void GLWidget::rotX(const int & change) {
+    if(change != 0) {
+        xAngle += rotateSpeed * change;
+        if(xAngle > 360.0f) {
+            xAngle -= 360.0f;
+        }
+        if(xAngle < -360.0f) {
+            xAngle += 360.0f;
+        }
+        // x rotation matrix
+        glm::vec4 xRot(1.0f,0.0f,0.0f,0.0f);
+        glm::vec4 yRot(0.0f,cosf(xAngle),-sinf(xAngle),0.0f);
+        glm::vec4 zRot(0.0f,sinf(xAngle),cosf(xAngle),0.0f);
+        glm::vec4 wRot(0.0f,0.0f,0.0f,1.0f);
+        xRotMat = glm::mat4(xRot,yRot,zRot,wRot);
+        repaint();
+    }
+}
+
+void GLWidget::rotY(const int &change) {
+    if(change != 0) {
+        yAngle += rotateSpeed * change;
+        if(yAngle > 360.0f) {
+            yAngle -= 360.0f;
+        }
+        if(yAngle < -360.0f) {
+            yAngle += 360.0f;
+        }
+        // y rotation matrix
+        glm::vec4 xRot(cosf(yAngle),0.0f,sinf(yAngle),0.0f);
+        glm::vec4 yRot(0.0f,1.0f,0.0f,0.0f);
+        glm::vec4 zRot(-sinf(yAngle),0.0f,cosf(yAngle),0.0f);
+        glm::vec4 wRot(0.0f,0.0f,0.0f,1.0f);
+        yRotMat = glm::mat4(xRot,yRot,zRot,wRot);
+        repaint();
+    }
+}
+
+void GLWidget::rotZ(const int &change) {
+    if(change != 0) {
+        zAngle += rotateSpeed * change;
+        if(zAngle > 360.0f) {
+            zAngle -= 360.0f;
+        }
+        if(zAngle < -360.0f) {
+            zAngle += 360.0f;
+        }
+        // z rotation matrix
+        glm::vec4 xRot(cosf(zAngle),-sinf(zAngle),0.0f,0.0f);
+        glm::vec4 yRot(sinf(zAngle),cosf(zAngle),0.0f,0.0f);
+        glm::vec4 zRot(0.0f,0.0f,1.0f,0.0f);
+        glm::vec4 wRot(0.0f,0.0f,0.0f,1.0f);
+        zRotMat = glm::mat4(xRot,yRot,zRot,wRot);
+        repaint();
+    }
+}
+
+void GLWidget::scaleBy(const int &change) {
+    if(change != 0) {
+        scale -= change * scaleSpeed;
+        if(scale < 0.0f) {
+            scale = 0.0f;
+        }
+        glm::vec4 scaleX(scale,0.0f,0.0f,0.0f);
+        glm::vec4 scaleY(0.0f,scale,0.0f,0.0f);
+        glm::vec4 scaleZ(0.0f,0.0f,scale,0.0f);
+        glm::vec4 scaleW(0.0f,0.0f,0.0f,1.0f);
+        scaleMat = glm::mat4(scaleX,scaleY,scaleZ,scaleW);
+        repaint();
+    }
+}
+
 void GLWidget::mouseMoveEvent(QMouseEvent* e) {
-    if(mode==0 || mode == 1) {
+    if(mode==0 || mode == 1 || mode == 2) {
+        // Update change in mouse position
         int x = (width/2) - e->x();
         int y = (height/2) - e->y();
         int dx = lastX - x;
@@ -326,74 +352,64 @@ void GLWidget::mouseMoveEvent(QMouseEvent* e) {
         lastX = x;
         lastY = y;
     if(mode == 0) {
-        if(rotMode == 0) { //x
-            if(dy != 0) {
-                xAngle -= rotateSpeed * dy;
-                if(xAngle > 360.0f) {
-                    xAngle -= 360.0f;
-                }
-                if(xAngle < -360.0f) {
-                    xAngle += 360.0f;
-                }
-                glm::vec4 xRot(1.0f,0.0f,0.0f,0.0f);
-                glm::vec4 yRot(0.0f,cosf(xAngle),-sinf(xAngle),0.0f);
-                glm::vec4 zRot(0.0f,sinf(xAngle),cosf(xAngle),0.0f);
-                glm::vec4 wRot(0.0f,0.0f,0.0f,1.0f);
-                xRotMat = glm::mat4(xRot,yRot,zRot,wRot);
-                repaint();
-            }
+        // x-rotation
+        if(rotMode == 0) {
+            rotX(-dy);
         }
-        else if(rotMode == 1) { //y
-            if(dx != 0) {
-                yAngle -= rotateSpeed * dx;
-                if(yAngle > 360.0f) {
-                    yAngle -= 360.0f;
-                }
-                if(yAngle < -360.0f) {
-                    yAngle += 360.0f;
-                }
-                glm::vec4 xRot(cosf(yAngle),0.0f,sinf(yAngle),0.0f);
-                glm::vec4 yRot(0.0f,1.0f,0.0f,0.0f);
-                glm::vec4 zRot(-sinf(yAngle),0.0f,cosf(yAngle),0.0f);
-                glm::vec4 wRot(0.0f,0.0f,0.0f,1.0f);
-                yRotMat = glm::mat4(xRot,yRot,zRot,wRot);
-                repaint();
-            }
+        // y-rotation
+        else if(rotMode == 1) {
+            rotY(-dx);
         }
-        else if(rotMode == 2) { //z
-            if(dy != 0) {
-                zAngle -= rotateSpeed * dy;
-                if(zAngle > 360.0f) {
-                    zAngle -= 360.0f;
-                }
-                if(zAngle < -360.0f) {
-                    zAngle += 360.0f;
-                }
-                glm::vec4 xRot(cosf(zAngle),-sinf(zAngle),0.0f,0.0f);
-                glm::vec4 yRot(sinf(zAngle),cosf(zAngle),0.0f,0.0f);
-                glm::vec4 zRot(0.0f,0.0f,1.0f,0.0f);
-                glm::vec4 wRot(0.0f,0.0f,0.0f,1.0f);
-                zRotMat = glm::mat4(xRot,yRot,zRot,wRot);
-                repaint();
-            }
+        // z-rotation
+        else if(rotMode == 2) {
+            rotZ(dx);
         }
     }
-    if(mode == 1) {
+    else if(mode == 1) {
     // Up -> increase scale
     // Down -> decrease scale
-        if(dy != 0) {
-            scale -= dy * scaleSpeed;
-            if(scale < 0.0f) {
-                scale = 0.0f;
-            }
-            glm::vec4 scaleX(scale,0.0f,0.0f,0.0f);
-            glm::vec4 scaleY(0.0f,scale,0.0f,0.0f);
-            glm::vec4 scaleZ(0.0f,0.0f,scale,0.0f);
-            glm::vec4 scaleW(0.0f,0.0f,0.0f,1.0f);
-            scaleMat = glm::mat4(scaleX,scaleY,scaleZ,scaleW);
-            repaint();
-        }
+        scaleBy(dy);
 
+    }
+    else if(mode == 2) {
+        translateX -= dx * translateSpeed;
+        translateY += dy * translateSpeed;
+        repaint();
+    }
+    }
+}
+
+void GLWidget::wheelEvent(QWheelEvent *e) {
+    if(mode==0 || mode == 1 || mode == 2) {
+        // Update change in wheel
+        int wheel = e->delta();
+        int change = 0;
+        if(wheel > 0) {
+            change = 5;
+        }
+        else if(wheel < 0) {
+            change = -5;
+        }
+    if(mode == 0) {
+        // x-rotation
+        if(rotMode == 0) {
+            rotX(change);
+        }
+        // y-rotation
+        else if(rotMode == 1) {
+            rotY(change);
+        }
+        // z-rotation
+        else if(rotMode == 2) {
+            rotZ(change);
+        }
+    }
+    else if(mode == 1) {
+        scaleBy(-change);
+    }
+    else if(mode == 2) {
+        translateZ += change * translateSpeed;
+        repaint();
     }
     }
 }
@@ -402,7 +418,7 @@ void GLWidget::keyPressEvent( QKeyEvent* e )
 {
     switch ( e->key() )
     {
-        case Qt::Key_R:
+        case Qt::Key_R: // Rotation mode
             lastX=20000;
             lastY=20000;
             mode = 0;
@@ -411,38 +427,44 @@ void GLWidget::keyPressEvent( QKeyEvent* e )
                 rotMode = 0;
             }
             if(rotMode==0) {
-                qDebug() << "x rotate mode";
+                qDebug() << "x rotation mode";
             }
             if(rotMode==1) {
-                qDebug() << "y rotate mode";
+                qDebug() << "y rotation mode";
             }
             if(rotMode==2) {
-                qDebug() << "z rotate mode";
+                qDebug() << "z rotation mode";
             }
             break;
-        case Qt::Key_S:
-            qDebug() << "scale mode";
+        case Qt::Key_S: // Scale Mode
+            qDebug() << "Scale mode";
             lastX=20000;
             lastY=20000;
             mode = 1;
             break;
-        case Qt::Key_1:
+        case Qt::Key_T: // Translate Mode
+            qDebug() << "Translate mode";
+            lastX=20000;
+            lastY=20000;
+            mode = 2;
+            break;
+        case Qt::Key_1: // Color 1
             color = std::move(glm::vec4(1.0f,1.0f,1.0f,1.0f));
             repaint();
             break;
-        case Qt::Key_2:
+        case Qt::Key_2: // Color 2
             color = std::move(glm::vec4(1.0f,0.0f,0.0f,1.0f));
             repaint();
             break;
-        case Qt::Key_3:
+        case Qt::Key_3: // Color 3
             color = std::move(glm::vec4(0.0f,1.0f,0.0f,1.0f));
             repaint();
             break;
-        case Qt::Key_4:
+        case Qt::Key_4: // Color 4
             color = std::move(glm::vec4(0.0f,0.0f,1.0f,1.0f));
             repaint();
             break;
-        case Qt::Key_5:
+        case Qt::Key_5: // Color 5
             color = std::move(glm::vec4(0.8f,0.72f,0.878f,1.0f));
             repaint();
             break;

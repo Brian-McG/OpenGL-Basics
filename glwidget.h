@@ -30,8 +30,16 @@ protected:
     virtual void paintGL();   
     virtual void mouseMoveEvent(QMouseEvent* m);
     virtual void keyPressEvent( QKeyEvent* e );
+    virtual void wheelEvent(QWheelEvent* e);
 
 private:
+    void rotX(const int & change);
+    void rotY(const int & change);
+    void rotZ(const int & change);
+    void transX(const int & change);
+    void transY(const int & change);
+    void transZ(const int & change);
+    void scaleBy(const int & change);
     glm::mat4 Projection;
 
     // Camera Matrix
@@ -46,17 +54,22 @@ private:
     float rotateSpeed = 0.02f;
     int lastX;
     int lastY;
+    int lastWheel;
     float scale = 1.0f;
     float scaleSpeed = 0.02f;
-
-    // Do this in cpp rather
+    float translateX = 0.0f;
+    float translateY = 0.0f;
+    float translateZ = 3.0f;
+    //float wheel = 0.0f;
+    float translateSpeed = 0.005f;
     glm::mat4 xRotMat;
     glm::mat4 yRotMat;
     glm::mat4 zRotMat;
     glm::mat4 scaleMat;
+    glm::mat4 translateMat;
     glm::vec4 color;
-    unsigned char mode;
-    unsigned char rotMode;
+    char mode = -1;
+    char rotMode= -1;
     stlData data;
     bool prepareShaderProgram( const QString& vertexShaderPath,
                                const QString& fragmentShaderPath );
