@@ -53,32 +53,11 @@ The default model should be the bunny. If for some reason the bunny fails to loa
 |`Open`            | Reads an stl file from system|
 |`Reset`            | Resets the scene to default state|
 
-### To Run this program
-1. Open project in Qt Creator
-2. Click Run in Qt Creator
+### To Run this program in Qt Creator
+Simply open the project and click run.
 
 ### Default camera position
 By default the camera sits at (0,0,3) and looks at (0,0,0).
 
 ###Additional project dependencies
 The project depends on the *glm* package and is included in the project directory
-
-### Files Included
-
- - .gitignore
- - Games_3_GL3.2_Template.pro
- - README.md
- - README.html
- - bunny.stl
- - glheader.h
- - main.cpp
- - resources.qrc
- - simple.frag
- - simple.vert
- - window.cpp
- - window.h
- - glwidget.h
- - glwidget.cpp
- - glm
-
-
