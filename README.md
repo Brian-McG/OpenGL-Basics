@@ -7,6 +7,7 @@ Assignment 2: OpenGL Intro
 ### Controls
 Translation, rotation and scaling operations can be done via the mouse or via the mouse wheel.
 In order to use the mouse, one must **click and hold** the mouse button (in the application window) and then move the mouse in the desired direction.
+
 |Keyboard Option | Description|
 |:-------------- |:------------|
 |`r`             | Switches to rotation mode.<br>Each press toggles between the different rotation axes.|
