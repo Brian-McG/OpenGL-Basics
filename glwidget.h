@@ -1,11 +1,10 @@
-// Brian Mc George
+// Copyright[2015] <Brian Mc George>
 // MCGBRI004
-// 25-04-2015
 
 #ifndef GLWIDGET_H
 #define GLWIDGET_H
 
-#include "glheaders.h" // Must be included before QT opengl headers
+#include "./glheaders.h"  // Must be included before QT opengl headers
 #include "glm/glm.hpp"
 #include <QGLWidget>
 #include <QOpenGLBuffer>
@@ -28,7 +27,7 @@ public:
 protected:
     virtual void initializeGL();
     virtual void resizeGL( int w, int h );
-    virtual void paintGL();   
+    virtual void paintGL();
     virtual void mouseMoveEvent(QMouseEvent* m);
     virtual void keyPressEvent( QKeyEvent* e );
     virtual void wheelEvent(QWheelEvent* e);
@@ -60,7 +59,6 @@ private:
     float translateX = 0.0f;
     float translateY = 0.0f;
     float translateZ = 3.0f;
-    //float wheel = 0.0f;
     float translateSpeed = 0.005f;
     glm::mat4 xRotMat;
     glm::mat4 yRotMat;
