@@ -4,20 +4,22 @@
 #ifndef GLWIDGET_H
 #define GLWIDGET_H
 
+#include <string>
 #include "./glheaders.h"  // Must be included before QT opengl headers
 #include "glm/glm.hpp"
 #include <QGLWidget>
 #include <QOpenGLBuffer>
 #include <QOpenGLShaderProgram>
 
+
 #include <memory>
 class GLWidget : public QGLWidget
 {
     Q_OBJECT
 public:
-    GLWidget( const QGLFormat& format, QWidget* parent = 0 );
+    GLWidget(const QGLFormat& format, QWidget* parent = 0);
     struct stlData {
-        int numTriangles=0;
+        int numTriangles = 0;
         std::unique_ptr<glm::vec4[]> vertices;
         std::unique_ptr<glm::vec3[]> normals;
     };
@@ -26,10 +28,10 @@ public:
 
 protected:
     virtual void initializeGL();
-    virtual void resizeGL( int w, int h );
+    virtual void resizeGL(int w, int h);
     virtual void paintGL();
     virtual void mouseMoveEvent(QMouseEvent* m);
-    virtual void keyPressEvent( QKeyEvent* e );
+    virtual void keyPressEvent(QKeyEvent* e);
     virtual void wheelEvent(QWheelEvent* e);
 
 private:
@@ -67,13 +69,13 @@ private:
     glm::mat4 translateMat;
     glm::vec4 color;
     char mode = -1;
-    char rotMode= -1;
+    char rotMode = -1;
     stlData data;
-    bool prepareShaderProgram( const QString& vertexShaderPath,
-                               const QString& fragmentShaderPath );
+    bool prepareShaderProgram(const QString& vertexShaderPath,
+                               const QString& fragmentShaderPath);
 
     QOpenGLShaderProgram m_shader;
     QOpenGLBuffer m_vertexBuffer;
+    QOpenGLBuffer m_normalBuffer;
 };
-
 #endif // GLWIDGET_H

@@ -25,6 +25,7 @@ m_vertexBuffer(QOpenGLBuffer::VertexBuffer) {
 void GLWidget::initializeGL() {
   // Resolve OpenGL functions
   glewExperimental = true;
+  glEnable(GL_DEPTH_TEST);
   GLenum GlewInitResult = glewInit();
   if (GlewInitResult != GLEW_OK) {
     const GLubyte* errorStr = glewGetErrorString(GlewInitResult);
@@ -114,8 +115,7 @@ void GLWidget::initializeGL() {
       qWarning() << "Could not bind vertex buffer to the context";
       return;
     }
-    m_vertexBuffer.allocate( data.vertices.get(), data.numTriangles * 3 * sizeof(glm::vec4) );
-
+    m_vertexBuffer.allocate(data.vertices.get(), data.numTriangles * 3 * sizeof(glm::vec4));
 
     qDebug() << "Attempting vertex shader load from " << VERT_SHADER;
     qDebug() << "Attempting fragment shader load from " << FRAG_SHADER;
@@ -131,8 +131,22 @@ void GLWidget::initializeGL() {
     }
     // Enable the "vertex" attribute to bind it to our currently bound
     // vertex buffer.
-    m_shader.setAttributeBuffer("vertex", GL_FLOAT, 0, 4);
+
     m_shader.enableAttributeArray("vertex");
+    m_shader.setAttributeBuffer("vertex", GL_FLOAT, 0, 4);
+
+
+    m_normalBuffer.create();
+    m_normalBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    if (!m_normalBuffer.bind()) {
+      qWarning() << "Could not bind vertex buffer to the context";
+      return;
+    }
+    m_normalBuffer.allocate(data.normals.get(), data.numTriangles * 3 * sizeof(glm::vec3));
+    m_shader.bind();
+    m_shader.enableAttributeArray("normal");
+    m_shader.setAttributeBuffer("normal", GL_FLOAT, 0, 3);
+
     color = std::move(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     GLuint MatrixID = glGetUniformLocation(m_shader.programId(), "MVP");
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
@@ -189,7 +203,7 @@ void GLWidget::initializeGL() {
     GLWidget::stlData model;
     model.numTriangles = numTriangles;
     qDebug() << "Number of triangles:" << numTriangles;
-    model.normals = std::unique_ptr<glm::vec3[]>(new glm::vec3[numTriangles]);
+    model.normals = std::unique_ptr<glm::vec3[]>(new glm::vec3[numTriangles * 3]);
     model.vertices = std::unique_ptr<glm::vec4[]>(new glm::vec4[numTriangles * 3]);
     unsigned int triCounter = 0;
     for (unsigned int i = 0; i < numTriangles; ++i) {
@@ -209,9 +223,9 @@ void GLWidget::initializeGL() {
       }
 
       // Normal Vector
-      std::cout << normX << std::endl;
-      model.normals[i] = glm::vec3(normX, normY, normZ);
-
+      model.normals[triCounter] = glm::vec3(normX, normY, normZ);
+      model.normals[triCounter+1] = glm::vec3(normX, normY, normZ);
+      model.normals[triCounter+2] = glm::vec3(normX, normY, normZ);
       // Vertex 1
       model.vertices[triCounter] = glm::vec4(x, y, z, 1.0f);
 
@@ -249,7 +263,6 @@ void GLWidget::initializeGL() {
       triCounter+=3;
     }
     data = std::move(model);
-    m_vertexBuffer.allocate( data.vertices.get(), data.numTriangles * 3 * sizeof(glm::vec4) );
     return;
   }
 
@@ -269,19 +282,21 @@ void GLWidget::initializeGL() {
     Model = glm::scale(Model, glm::vec3(scale, scale, scale));
     MVP = Projection  * View * Model;
 
-    glm::vec3 light_position = glm::vec3(1, 1, 1);
+    glm::vec3 light_position = glm::vec3(0, 0, 3);
     glUniform3f(glGetUniformLocation(m_shader.programId(), "light"), light_position[0], light_position[1], light_position[2]);
 
-    glm::vec4 ambprod = glm::vec4(0.2, 0.2, 0.2, 1.0);
-    glm::vec4 diffprod = glm::vec4(0.3, 0.3, 0.3, 1.0);
-    glm::vec4 specprod = glm::vec4(0.1, 0.1, 0.1, 1.0);
+    glm::vec4 ambprod = glm::vec4(0.3, 0.3, 0.3, 1.0);
+    glm::vec4 diffprod = glm::vec4(0.2, 0.2, 0.2, 1.0);
+    glm::vec4 specprod = glm::vec4(0.15, 0.15, 0.15, 1.0);
     glUniform4f(glGetUniformLocation(m_shader.programId(), "ambprod"), ambprod[0], ambprod[1], ambprod[2], ambprod[3]);
     glUniform4f(glGetUniformLocation(m_shader.programId(), "diffprod"), diffprod[0], diffprod[1], diffprod[2], diffprod[3]);
     glUniform4f(glGetUniformLocation(m_shader.programId(), "specprod"), specprod[0], specprod[1], specprod[2], specprod[3]);
-    glUniform1f(glGetUniformLocation(m_shader.programId(), "shine"), 2.0f);
+    glUniform1f(glGetUniformLocation(m_shader.programId(), "shine"), 2);
 
     GLuint MatrixID = glGetUniformLocation(m_shader.programId(), "MVP");
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
+    GLuint modelID = glGetUniformLocation(m_shader.programId(), "model");
+    glUniformMatrix4fv(modelID, 1, GL_FALSE, &Model[0][0]);
     glUniform4f(glGetUniformLocation(m_shader.programId(), "fcolor"), color[0], color[1], color[2], color[3]);
 
     // Clear the buffer with the current clearing color
