@@ -26,6 +26,9 @@ void GLWidget::initializeGL() {
   // Resolve OpenGL functions
   glewExperimental = true;
   glEnable(GL_DEPTH_TEST);
+  glDepthFunc(GL_LESS);
+  // Cull triangles which normal is not towards the camera
+  //  glEnable(GL_CULL_FACE);
   GLenum GlewInitResult = glewInit();
   if (GlewInitResult != GLEW_OK) {
     const GLubyte* errorStr = glewGetErrorString(GlewInitResult);
@@ -59,6 +62,17 @@ void GLWidget::initializeGL() {
 
     // If bunny fails to load, load a placeholder cube
     if (data.numTriangles == 0) {
+      data = GLWidget::stlData();
+      data.numTriangles = 1;
+      data.normals =  std::unique_ptr<glm::vec3[]>(new glm::vec3[data.numTriangles * 3]);
+      data.vertices = std::unique_ptr<glm::vec4[]>(new glm::vec4[data.numTriangles*3]);
+      data.vertices[0] = glm::vec4(-1.0f, -1.0f, 0.0f, 1.0f);
+      data.vertices[1] = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+      data.vertices[2] = glm::vec4(1.0f, -1.0f, 0.0f, 1.0f);
+      data.normals[0] = glm::vec3(0.0f, 0.0f, 1.0f);
+      data.normals[1] = glm::vec3(0.0f, 0.0f, 1.0f);
+      data.normals[2] = glm::vec3(0.0f, 0.0f, 1.0f);
+      /*
       qDebug() << "The bunny failed to load, loading a placeholder cube instead.";
       data = GLWidget::stlData();
       data.numTriangles = 12;
@@ -99,6 +113,7 @@ void GLWidget::initializeGL() {
       data.vertices[33] = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
       data.vertices[34] = glm::vec4(-1.0f, 1.0f, 1.0f, 1.0f);
       data.vertices[35] = glm::vec4(1.0f, -1.0f, 1.0f, 1.0f);
+      */
     }
 
     // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit to 100 units
@@ -155,6 +170,7 @@ void GLWidget::initializeGL() {
     yRotMat = std::move(glm::mat4(1.0f));
     zRotMat = std::move(glm::mat4(1.0f));
     scaleMat = std::move(glm::mat4(1.0f));
+    light_position = glm::vec3(0, 0, 10);
   }
 
   void GLWidget::reset() {
@@ -282,19 +298,28 @@ void GLWidget::initializeGL() {
     Model = glm::scale(Model, glm::vec3(scale, scale, scale));
     MVP = Projection  * View * Model;
 
-    glm::vec3 light_position = glm::vec3(0, 0, 3);
+    glm::mat4 MVN = glm::inverse(glm::transpose(glm::mat4(View * Model)));
+    GLuint NormalID = glGetUniformLocation(m_shader.programId(), "MVN");
+    glUniformMatrix4fv(NormalID, 1, GL_FALSE, &MVN[0][0]);
+
+    GLuint ViewID = glGetUniformLocation(m_shader.programId(), "view");
+    glUniformMatrix4fv(ViewID, 1, GL_FALSE, &View[0][0]);
+
+
     glUniform3f(glGetUniformLocation(m_shader.programId(), "light"), light_position[0], light_position[1], light_position[2]);
 
-    glm::vec4 ambprod = glm::vec4(0.3, 0.3, 0.3, 1.0);
-    glm::vec4 diffprod = glm::vec4(0.2, 0.2, 0.2, 1.0);
-    glm::vec4 specprod = glm::vec4(0.15, 0.15, 0.15, 1.0);
+    glm::vec4 ambprod = glm::vec4(0.05, 0.05, 0.05, 1.0);
+    glm::vec4 diffprod = glm::vec4(0.3, 0.3, 0.3, 1.0);
+    //glm::vec4 diffprod = glm::vec4(0, 0, 0, 1.0);
+    glm::vec4 specprod = glm::vec4(1.0, 1.0, 1.0, 1.0);
     glUniform4f(glGetUniformLocation(m_shader.programId(), "ambprod"), ambprod[0], ambprod[1], ambprod[2], ambprod[3]);
     glUniform4f(glGetUniformLocation(m_shader.programId(), "diffprod"), diffprod[0], diffprod[1], diffprod[2], diffprod[3]);
     glUniform4f(glGetUniformLocation(m_shader.programId(), "specprod"), specprod[0], specprod[1], specprod[2], specprod[3]);
-    glUniform1f(glGetUniformLocation(m_shader.programId(), "shine"), 2);
+    glUniform1f(glGetUniformLocation(m_shader.programId(), "shine"), 100.0);
 
     GLuint MatrixID = glGetUniformLocation(m_shader.programId(), "MVP");
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
+
     GLuint modelID = glGetUniformLocation(m_shader.programId(), "model");
     glUniformMatrix4fv(modelID, 1, GL_FALSE, &Model[0][0]);
     glUniform4f(glGetUniformLocation(m_shader.programId(), "fcolor"), color[0], color[1], color[2], color[3]);

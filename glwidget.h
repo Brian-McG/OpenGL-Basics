@@ -62,6 +62,8 @@ private:
     float translateY = 0.0f;
     float translateZ = 3.0f;
     float translateSpeed = 0.005f;
+    float lightRotation = 0.0f;
+    glm::vec3 light_position;
     glm::mat4 xRotMat;
     glm::mat4 yRotMat;
     glm::mat4 zRotMat;
