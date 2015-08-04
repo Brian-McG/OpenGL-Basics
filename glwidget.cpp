@@ -170,8 +170,24 @@ void GLWidget::initializeGL() {
     yRotMat = std::move(glm::mat4(1.0f));
     zRotMat = std::move(glm::mat4(1.0f));
     scaleMat = std::move(glm::mat4(1.0f));
-    light_position = glm::vec3(0, 0, 10);
+    light_position = glm::vec3(0, 0, -10);
+
+    // Configure the timer
+    connect(&redrawTimer, SIGNAL(timeout()), this, SLOT(updateGL()));
+    if(format().swapInterval() == -1)
+    {
+        // V_blank synchronization not available (tearing likely to happen)
+        qDebug("Swap Buffers at v_blank not available: refresh at approx 60fps.");
+        redrawTimer.setInterval(17);
+    }
+    else
+    {
+        // V_blank synchronization available
+        redrawTimer.setInterval(0);
+    }
+    redrawTimer.start();
   }
+
 
   void GLWidget::reset() {
     lastX = 20000;
@@ -297,7 +313,10 @@ void GLWidget::initializeGL() {
     Model = glm::rotate(Model, zAngle, glm::vec3(0, 0, 1.0f));
     Model = glm::scale(Model, glm::vec3(scale, scale, scale));
     MVP = Projection  * View * Model;
-
+    lightRotation += 0.2f;
+    if (lightRotation > 360.0f) {
+      lightRotation = 0.0f;
+    }
     glm::mat4 MVN = glm::inverse(glm::transpose(glm::mat4(View * Model)));
     GLuint NormalID = glGetUniformLocation(m_shader.programId(), "MVN");
     glUniformMatrix4fv(NormalID, 1, GL_FALSE, &MVN[0][0]);
@@ -305,12 +324,16 @@ void GLWidget::initializeGL() {
     GLuint ViewID = glGetUniformLocation(m_shader.programId(), "view");
     glUniformMatrix4fv(ViewID, 1, GL_FALSE, &View[0][0]);
 
+    float radianRotation = glm::radians(lightRotation);
+    glm::vec3 rotatedLight = glm::mat3x3(glm::vec3(glm::cos(radianRotation), 0, glm::sin(radianRotation)), glm::vec3(0, 1, 0), glm::vec3(-glm::sin(radianRotation), 0, glm::cos(radianRotation))) * light_position;
+    //qDebug() << glm::sin(radianRotation) << " " << rotatedLight[0] << " " << rotatedLight[1] << " " << rotatedLight[2];
 
-    glUniform3f(glGetUniformLocation(m_shader.programId(), "light"), light_position[0], light_position[1], light_position[2]);
+    glUniform3f(glGetUniformLocation(m_shader.programId(), "light"), rotatedLight[0], rotatedLight[1], rotatedLight[2]);
 
     glm::vec4 ambprod = glm::vec4(0.05, 0.05, 0.05, 1.0);
     glm::vec4 diffprod = glm::vec4(0.3, 0.3, 0.3, 1.0);
-    //glm::vec4 diffprod = glm::vec4(0, 0, 0, 1.0);
+    //  glm::vec4 diffprod = glm::vec4(0, 0, 0, 1.0);
+    //  glm::vec4 specprod = glm::vec4(0.0, 0.0, 0.0, 1.0);
     glm::vec4 specprod = glm::vec4(1.0, 1.0, 1.0, 1.0);
     glUniform4f(glGetUniformLocation(m_shader.programId(), "ambprod"), ambprod[0], ambprod[1], ambprod[2], ambprod[3]);
     glUniform4f(glGetUniformLocation(m_shader.programId(), "diffprod"), diffprod[0], diffprod[1], diffprod[2], diffprod[3]);
@@ -329,6 +352,13 @@ void GLWidget::initializeGL() {
 
     // Draw triangles
     glDrawArrays(GL_TRIANGLES, 0, data.numTriangles * 3);
+  }
+
+  QGLFormat GLWidget::desiredFormat()
+  {
+    QGLFormat fmt;
+    fmt.setSwapInterval(1);
+    return fmt;
   }
 
   void GLWidget::rotX(const int & change) {
