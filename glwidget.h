@@ -10,6 +10,7 @@
 #include <QGLWidget>
 #include <QOpenGLBuffer>
 #include <QOpenGLShaderProgram>
+#include <QTimer>
 
 
 #include <memory>
@@ -42,6 +43,7 @@ private:
     void transY(const int & change);
     void transZ(const int & change);
     void scaleBy(const int & change);
+    QGLFormat desiredFormat();
     glm::mat4 Projection;
 
     // Camera Matrix
@@ -63,6 +65,7 @@ private:
     float translateZ = 3.0f;
     float translateSpeed = 0.005f;
     float lightRotation = 0.0f;
+    QTimer redrawTimer;
     glm::vec3 light_position;
     glm::mat4 xRotMat;
     glm::mat4 yRotMat;
