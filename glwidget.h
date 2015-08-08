@@ -5,12 +5,14 @@
 #define GLWIDGET_H
 
 #include <string>
-#include "./glheaders.h"  // Must be included before QT opengl headers
 #include "glm/glm.hpp"
+#include "./glheaders.h"  // Must be included before QT opengl headers
 #include <QGLWidget>
 #include <QOpenGLBuffer>
 #include <QOpenGLShaderProgram>
 #include <QTimer>
+
+
 
 
 #include <memory>

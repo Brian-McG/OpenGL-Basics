@@ -1,19 +1,15 @@
-// Brian Mc George
+// Copyright[2015] <Brian Mc George>
 // MCGBRI004
-// 26-04-2015
 
-#include "glwidget.h"
-#include <QtGui>
-#include "window.h"
+#include <string>
+#include "./glwidget.h"
 #include <QGLFormat>
 #include <QAction>
 #include <QMenuBar>
 #include <QFileDialog>
-#include <string>
+#include "./window.h"
 
-window::window(QWidget *parent) :
-    QMainWindow(parent)
-{
+window::window(QWidget *parent) : QMainWindow(parent) {
     setUpWidget();
     addActions();
     addMenus();
@@ -25,16 +21,16 @@ window::~window() {
     delete newAction;
     delete openAction;
     delete fileMenu;
-    for(unsigned int i =0; i<windows.size();++i) {
+    for (unsigned int i =0; i < windows.size(); ++i) {
         delete windows[i];
     }
 }
 
 void window::setUpWidget() {
     QGLFormat glFormat;
-    glFormat.setVersion( 3, 2 );
-    glFormat.setProfile( QGLFormat::CoreProfile );
-    glFormat.setSampleBuffers( true );
+    glFormat.setVersion(3, 2);
+    glFormat.setProfile(QGLFormat::CoreProfile);
+    glFormat.setSampleBuffers(true);
     glWidget = new GLWidget(glFormat);
     setCentralWidget(glWidget);
     glWidget->setFocus();
@@ -63,15 +59,15 @@ void window::addConections() {
 }
 
 void window::open() {
-    QString fileName = QFileDialog::getOpenFileName(this,tr("Open stl file"), "", tr("*.stl"));
-    if(fileName != "") {
+    QString fileName = QFileDialog::getOpenFileName(this, tr("Open stl file"), "", tr("*.stl"));
+    if (fileName != "") {
         glWidget->loadSTLFile(fileName.toStdString());
     }
 }
 
 void window::newWindow() {
     windows.push_back(new window());
-    windows.back()->resize(640,480);
+    windows.back()->resize(640, 480);
     windows.back()->show();
 }
 

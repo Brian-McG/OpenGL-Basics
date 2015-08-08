@@ -27,8 +27,8 @@ void GLWidget::initializeGL() {
   glewExperimental = true;
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
-  // Cull triangles which normal is not towards the camera
-  //  glEnable(GL_CULL_FACE);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   GLenum GlewInitResult = glewInit();
   if (GlewInitResult != GLEW_OK) {
     const GLubyte* errorStr = glewGetErrorString(GlewInitResult);
@@ -62,6 +62,7 @@ void GLWidget::initializeGL() {
 
     // If bunny fails to load, load a placeholder cube
     if (data.numTriangles == 0) {
+      qDebug() << "The bunny failed to load, loading a placeholder cube instead.";
       data = GLWidget::stlData();
       data.numTriangles = 1;
       data.normals =  std::unique_ptr<glm::vec3[]>(new glm::vec3[data.numTriangles * 3]);
@@ -72,48 +73,6 @@ void GLWidget::initializeGL() {
       data.normals[0] = glm::vec3(0.0f, 0.0f, 1.0f);
       data.normals[1] = glm::vec3(0.0f, 0.0f, 1.0f);
       data.normals[2] = glm::vec3(0.0f, 0.0f, 1.0f);
-      /*
-      qDebug() << "The bunny failed to load, loading a placeholder cube instead.";
-      data = GLWidget::stlData();
-      data.numTriangles = 12;
-      data.vertices = std::unique_ptr<glm::vec4[]>(new glm::vec4[12*3]);
-      data.vertices[0] = glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f);
-      data.vertices[1] = glm::vec4(-1.0f, -1.0f, 1.0f, 1.0f);
-      data.vertices[2] = glm::vec4(-1.0f, 1.0f, 1.0f, 1.0f);
-      data.vertices[3] = glm::vec4(1.0f, 1.0f, -1.0f, 1.0f);
-      data.vertices[4] = glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f);
-      data.vertices[5] = glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
-      data.vertices[6] = glm::vec4(1.0f, -1.0f, 1.0f, 1.0f);
-      data.vertices[7] = glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f);
-      data.vertices[8] = glm::vec4(1.0f, -1.0f, -1.0f, 1.0f);
-      data.vertices[9] = glm::vec4(1.0f, 1.0f, -1.0f, 1.0f);
-      data.vertices[10] = glm::vec4(1.0f, -1.0f, -1.0f, 1.0f);
-      data.vertices[11] = glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f);
-      data.vertices[12] = glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f);
-      data.vertices[13] = glm::vec4(-1.0f, 1.0f, 1.0f, 1.0f);
-      data.vertices[14] = glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
-      data.vertices[15] = glm::vec4(1.0f, -1.0f, 1.0f, 1.0f);
-      data.vertices[16] = glm::vec4(-1.0f, -1.0f, 1.0f, 1.0f);
-      data.vertices[17] = glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f);
-      data.vertices[18] = glm::vec4(-1.0f, 1.0f, 1.0f, 1.0f);
-      data.vertices[19] = glm::vec4(-1.0f, -1.0f, 1.0f, 1.0f);
-      data.vertices[20] = glm::vec4(1.0f, -1.0f, 1.0f, 1.0f);
-      data.vertices[21] = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-      data.vertices[22] = glm::vec4(1.0f, -1.0f, -1.0f, 1.0f);
-      data.vertices[23] = glm::vec4(1.0f, 1.0f, -1.0f, 1.0f);
-      data.vertices[24] = glm::vec4(1.0f, -1.0f, -1.0f, 1.0f);
-      data.vertices[25] = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-      data.vertices[26] = glm::vec4(1.0f, -1.0f, 1.0f, 1.0f);
-      data.vertices[27] = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-      data.vertices[28] = glm::vec4(1.0f, 1.0f, -1.0f, 1.0f);
-      data.vertices[29] = glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
-      data.vertices[30] = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-      data.vertices[31] = glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
-      data.vertices[32] = glm::vec4(-1.0f, 1.0f, 1.0f, 1.0f);
-      data.vertices[33] = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-      data.vertices[34] = glm::vec4(-1.0f, 1.0f, 1.0f, 1.0f);
-      data.vertices[35] = glm::vec4(1.0f, -1.0f, 1.0f, 1.0f);
-      */
     }
 
     // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit to 100 units
@@ -172,17 +131,10 @@ void GLWidget::initializeGL() {
     scaleMat = std::move(glm::mat4(1.0f));
     light_position = glm::vec3(0, 0, -10);
 
-    // Configure the timer
     connect(&redrawTimer, SIGNAL(timeout()), this, SLOT(updateGL()));
-    if(format().swapInterval() == -1)
-    {
-        // V_blank synchronization not available (tearing likely to happen)
-        qDebug("Swap Buffers at v_blank not available: refresh at approx 60fps.");
+    if (format().swapInterval() == -1) {  // V-sync unavailable
         redrawTimer.setInterval(17);
-    }
-    else
-    {
-        // V_blank synchronization available
+    } else {  // V-sync available
         redrawTimer.setInterval(0);
     }
     redrawTimer.start();
@@ -262,7 +214,9 @@ void GLWidget::initializeGL() {
       model.vertices[triCounter] = glm::vec4(x, y, z, 1.0f);
 
       // Vertex 2
-      x = 0.0f; y = 0.0f; z = 0.0f;
+      x = 0.0f;
+      y = 0.0f;
+      z = 0.0f;
       fileStream.read(reinterpret_cast<char *>(&x), 4);
       fileStream.read(reinterpret_cast<char *>(&y), 4);
       fileStream.read(reinterpret_cast<char *>(&z), 4);
@@ -276,7 +230,9 @@ void GLWidget::initializeGL() {
       model.vertices[triCounter+1] = glm::vec4(x, y, z, 1.0f);
 
       // Vertex 3
-      x = 0.0f; y = 0.0f; z = 0.0f;
+      x = 0.0f;
+      y = 0.0f;
+      z = 0.0f;
       fileStream.read(reinterpret_cast<char *>(&x), 4);
       fileStream.read(reinterpret_cast<char *>(&y), 4);
       fileStream.read(reinterpret_cast<char *>(&z), 4);
@@ -324,28 +280,36 @@ void GLWidget::initializeGL() {
     GLuint ViewID = glGetUniformLocation(m_shader.programId(), "view");
     glUniformMatrix4fv(ViewID, 1, GL_FALSE, &View[0][0]);
 
-    float radianRotation = glm::radians(lightRotation);
-    glm::vec3 rotatedLight = glm::mat3x3(glm::vec3(glm::cos(radianRotation), 0, glm::sin(radianRotation)), glm::vec3(0, 1, 0), glm::vec3(-glm::sin(radianRotation), 0, glm::cos(radianRotation))) * light_position;
-    //qDebug() << glm::sin(radianRotation) << " " << rotatedLight[0] << " " << rotatedLight[1] << " " << rotatedLight[2];
+    float radian_rotation = glm::radians(lightRotation);
+    glm::vec3 rotated_light = glm::mat3x3(glm::vec3(glm::cos(radian_rotation), 0, glm::sin(radian_rotation)), glm::vec3(0, 1, 0), glm::vec3(-glm::sin(radian_rotation), 0, glm::cos(radian_rotation))) * light_position;
+    // qDebug() << glm::sin(radian_rotation) << " " << rotated_light[0] << " " << rotated_light[1] << " " << rotated_light[2];
+    glUniform3f(glGetUniformLocation(m_shader.programId(), "rotating_light"), rotated_light[0], rotated_light[1], rotated_light[2]);
+    // glm::vec4 ambprod_rotating_light = glm::vec4(0.00f, 0.00f, 0.00f, 1.0f);
+    // glm::vec4 diffprod_rotating_light = glm::vec4(0.0f, 0.3f, 0.0f, 1.0f);
+    // glm::vec4 specprod_rotating_light = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+    glm::vec4 ambprod_rotating_light = glm::vec4(0.00f, 0.00f, 0.00f, 1.0f);
+    glm::vec4 diffprod_rotating_light = glm::vec4(0.0f, 0.3f, 0.0f, 1.0f);
+    glm::vec4 specprod_rotating_light = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+    glUniform4f(glGetUniformLocation(m_shader.programId(), "ambprod_rotating_light"), ambprod_rotating_light[0], ambprod_rotating_light[1], ambprod_rotating_light[2], ambprod_rotating_light[3]);
+    glUniform4f(glGetUniformLocation(m_shader.programId(), "diffprod_rotating_light"), diffprod_rotating_light[0], diffprod_rotating_light[1], diffprod_rotating_light[2], diffprod_rotating_light[3]);
+    glUniform4f(glGetUniformLocation(m_shader.programId(), "specprod_rotating_light"), specprod_rotating_light[0], specprod_rotating_light[1], specprod_rotating_light[2], specprod_rotating_light[3]);
+    glUniform1f(glGetUniformLocation(m_shader.programId(), "shine_rotating_light"), 100.0);
 
-    glUniform3f(glGetUniformLocation(m_shader.programId(), "light"), rotatedLight[0], rotatedLight[1], rotatedLight[2]);
-
-    glm::vec4 ambprod = glm::vec4(0.05, 0.05, 0.05, 1.0);
-    glm::vec4 diffprod = glm::vec4(0.3, 0.3, 0.3, 1.0);
-    //  glm::vec4 diffprod = glm::vec4(0, 0, 0, 1.0);
-    //  glm::vec4 specprod = glm::vec4(0.0, 0.0, 0.0, 1.0);
-    glm::vec4 specprod = glm::vec4(1.0, 1.0, 1.0, 1.0);
-    glUniform4f(glGetUniformLocation(m_shader.programId(), "ambprod"), ambprod[0], ambprod[1], ambprod[2], ambprod[3]);
-    glUniform4f(glGetUniformLocation(m_shader.programId(), "diffprod"), diffprod[0], diffprod[1], diffprod[2], diffprod[3]);
-    glUniform4f(glGetUniformLocation(m_shader.programId(), "specprod"), specprod[0], specprod[1], specprod[2], specprod[3]);
-    glUniform1f(glGetUniformLocation(m_shader.programId(), "shine"), 100.0);
+    glm::vec3 static_light(0.0f, 0.0f, 10.0f);
+    glUniform3f(glGetUniformLocation(m_shader.programId(), "static_light"), static_light[0], static_light[1], static_light[2]);
+    glm::vec4 ambprod_static_light = glm::vec4(0.05, 0.05, 0.05, 1.0);
+    glm::vec4 diffprod_static_light = glm::vec4(0.3, 0.3, 0.3, 1.0);
+    glm::vec4 specprod_static_light = glm::vec4(0.6, 0.6, 0.6, 1.0);
+    glUniform4f(glGetUniformLocation(m_shader.programId(), "ambprod_static_light"), ambprod_static_light[0], ambprod_static_light[1], ambprod_static_light[2], ambprod_static_light[3]);
+    glUniform4f(glGetUniformLocation(m_shader.programId(), "diffprod_static_light"), diffprod_static_light[0], diffprod_static_light[1], diffprod_static_light[2], diffprod_static_light[3]);
+    glUniform4f(glGetUniformLocation(m_shader.programId(), "specprod_static_light"), specprod_static_light[0], specprod_static_light[1], specprod_static_light[2], specprod_static_light[3]);
+    glUniform1f(glGetUniformLocation(m_shader.programId(), "shine_static_light"), 100.0);
 
     GLuint MatrixID = glGetUniformLocation(m_shader.programId(), "MVP");
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
 
     GLuint modelID = glGetUniformLocation(m_shader.programId(), "model");
     glUniformMatrix4fv(modelID, 1, GL_FALSE, &Model[0][0]);
-    glUniform4f(glGetUniformLocation(m_shader.programId(), "fcolor"), color[0], color[1], color[2], color[3]);
 
     // Clear the buffer with the current clearing color
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
