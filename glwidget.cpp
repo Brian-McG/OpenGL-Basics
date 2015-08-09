@@ -162,9 +162,9 @@ void GLWidget::initializeGL() {
     repaint();
   }
 
-  void GLWidget::loadSTLFile(const std::string & fileName) {
+  void GLWidget::loadSTLFile(const std::string & file_name) {
     std::ifstream fileStream;
-    fileStream.open(fileName, std::ios_base::in | std::ios::binary);
+    fileStream.open(file_name, std::ios_base::in | std::ios::binary);
     if (fileStream.fail()) {
       qWarning() << "An error occurred accessing the file does the file exist?";
       fileStream.close();
@@ -252,6 +252,18 @@ void GLWidget::initializeGL() {
     }
     data = std::move(model);
     return;
+  }
+
+  bool loadObjImage(const std::string & file_name) {
+    std::vector< unsigned int > vertex_indices, uv_indices, normal_indices;
+    std::vector< glm::vec3 > temp_vertices;
+    std::vector< glm::vec2 > temp_uvs;
+    std::vector< glm::vec3 > temp_normals;
+    FILE * file = fopen(file_name.c_str(), "r");
+    if( file == NULL ){
+      printf("Impossible to open the file !\n");
+      return false;
+    }
   }
 
   void GLWidget::resizeGL(int w, int h) {

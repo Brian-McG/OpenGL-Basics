@@ -5,6 +5,7 @@
 #define GLWIDGET_H
 
 #include <string>
+#include <vector>
 #include "glm/glm.hpp"
 #include "./glheaders.h"  // Must be included before QT opengl headers
 #include <QGLWidget>
@@ -27,6 +28,7 @@ public:
         std::unique_ptr<glm::vec3[]> normals;
     };
     void loadSTLFile(const std::string & fileName);
+    void loadObjImage(const std::string & fileName);
     void reset();
 
 protected:
@@ -84,5 +86,10 @@ private:
     QOpenGLShaderProgram m_shader;
     QOpenGLBuffer m_vertexBuffer;
     QOpenGLBuffer m_normalBuffer;
+
+    //Obj related
+    std::vector<glm::vec3> out_verticies;
+    std::vector<glm::vec2> out_uvs;
+    std::vector<glm::vec3> out_normals;
 };
 #endif // GLWIDGET_H
