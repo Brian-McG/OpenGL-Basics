@@ -27,8 +27,13 @@ public:
         std::unique_ptr<glm::vec4[]> vertices;
         std::unique_ptr<glm::vec3[]> normals;
     };
+    struct obj_model {
+        int triangles = 0;
+        std::unique_ptr<glm::vec4[]> vertices;
+        std::unique_ptr<glm::vec3[]> normals;
+    };
     void loadSTLFile(const std::string & fileName);
-    void loadObjImage(const std::string & fileName);
+    bool loadObjImage(const std::string & fileName);
     void reset();
 
 protected:

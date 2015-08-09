@@ -9,6 +9,8 @@
 #include <iostream>
 #include <memory>
 #include <stdexcept>
+#include <sstream>
+#include <algorithm>
 #include "./glwidget.h"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/transform.hpp"
@@ -16,6 +18,7 @@
 #define VERT_SHADER ":/simple.vert"
 #define FRAG_SHADER ":/simple.frag"
 #define BUNNY_LOCATION "bunny.stl"
+#define BUNNY_LOCATION_OBJ "bunny.obj"
 
 GLWidget::GLWidget(const QGLFormat& format, QWidget* parent)
 : QGLWidget(format, parent),
@@ -58,7 +61,8 @@ void GLWidget::initializeGL() {
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
 
-    loadSTLFile(BUNNY_LOCATION);
+    //loadSTLFile(BUNNY_LOCATION);
+    loadObjImage(BUNNY_LOCATION_OBJ);
 
     // If bunny fails to load, load a placeholder cube
     if (data.numTriangles == 0) {
@@ -133,9 +137,9 @@ void GLWidget::initializeGL() {
 
     connect(&redrawTimer, SIGNAL(timeout()), this, SLOT(updateGL()));
     if (format().swapInterval() == -1) {  // V-sync unavailable
-        redrawTimer.setInterval(17);
+      redrawTimer.setInterval(17);
     } else {  // V-sync available
-        redrawTimer.setInterval(0);
+      redrawTimer.setInterval(0);
     }
     redrawTimer.start();
   }
@@ -163,23 +167,23 @@ void GLWidget::initializeGL() {
   }
 
   void GLWidget::loadSTLFile(const std::string & file_name) {
-    std::ifstream fileStream;
-    fileStream.open(file_name, std::ios_base::in | std::ios::binary);
-    if (fileStream.fail()) {
+    std::ifstream file_stream;
+    file_stream.open(file_name, std::ios_base::in | std::ios::binary);
+    if (file_stream.fail()) {
       qWarning() << "An error occurred accessing the file does the file exist?";
-      fileStream.close();
+      file_stream.close();
       data = std::move(GLWidget::stlData());
     }
 
     // Ignore header
-    fileStream.ignore(80, EOF);
+    file_stream.ignore(80, EOF);
 
     // Number of triangles
     unsigned int numTriangles;
-    fileStream.read(reinterpret_cast<char *>(&numTriangles), 4);
-    if (fileStream.fail()) {
+    file_stream.read(reinterpret_cast<char *>(&numTriangles), 4);
+    if (file_stream.fail()) {
       qWarning() << "An error occurred reading from file";
-      fileStream.close();
+      file_stream.close();
       data = std::move(GLWidget::stlData());
       return;
     }
@@ -192,15 +196,15 @@ void GLWidget::initializeGL() {
     unsigned int triCounter = 0;
     for (unsigned int i = 0; i < numTriangles; ++i) {
       float normX, normY, normZ, x, y, z;
-      fileStream.read(reinterpret_cast<char *>(&normX), 4);
-      fileStream.read(reinterpret_cast<char *>(&normY), 4);
-      fileStream.read(reinterpret_cast<char *>(&normZ), 4);
-      fileStream.read(reinterpret_cast<char *>(&x), 4);
-      fileStream.read(reinterpret_cast<char *>(&y), 4);
-      fileStream.read(reinterpret_cast<char *>(&z), 4);
-      if (fileStream.fail()) {
+      file_stream.read(reinterpret_cast<char *>(&normX), 4);
+      file_stream.read(reinterpret_cast<char *>(&normY), 4);
+      file_stream.read(reinterpret_cast<char *>(&normZ), 4);
+      file_stream.read(reinterpret_cast<char *>(&x), 4);
+      file_stream.read(reinterpret_cast<char *>(&y), 4);
+      file_stream.read(reinterpret_cast<char *>(&z), 4);
+      if (file_stream.fail()) {
         qWarning() << "An error occurred reading from file";
-        fileStream.close();
+        file_stream.close();
         data = std::move(GLWidget::stlData());
         m_vertexBuffer.allocate( data.vertices.get(), data.numTriangles * 3 * sizeof(glm::vec4) );
         return;
@@ -217,12 +221,12 @@ void GLWidget::initializeGL() {
       x = 0.0f;
       y = 0.0f;
       z = 0.0f;
-      fileStream.read(reinterpret_cast<char *>(&x), 4);
-      fileStream.read(reinterpret_cast<char *>(&y), 4);
-      fileStream.read(reinterpret_cast<char *>(&z), 4);
-      if (fileStream.fail()) {
+      file_stream.read(reinterpret_cast<char *>(&x), 4);
+      file_stream.read(reinterpret_cast<char *>(&y), 4);
+      file_stream.read(reinterpret_cast<char *>(&z), 4);
+      if (file_stream.fail()) {
         qWarning() << "An error occurred reading from file";
-        fileStream.close();
+        file_stream.close();
         data = std::move(GLWidget::stlData());
         m_vertexBuffer.allocate( data.vertices.get(), data.numTriangles * 3 * sizeof(glm::vec4) );
         return;
@@ -233,12 +237,12 @@ void GLWidget::initializeGL() {
       x = 0.0f;
       y = 0.0f;
       z = 0.0f;
-      fileStream.read(reinterpret_cast<char *>(&x), 4);
-      fileStream.read(reinterpret_cast<char *>(&y), 4);
-      fileStream.read(reinterpret_cast<char *>(&z), 4);
-      if (fileStream.fail()) {
+      file_stream.read(reinterpret_cast<char *>(&x), 4);
+      file_stream.read(reinterpret_cast<char *>(&y), 4);
+      file_stream.read(reinterpret_cast<char *>(&z), 4);
+      if (file_stream.fail()) {
         qWarning() << "An error occurred reading from file";
-        fileStream.close();
+        file_stream.close();
         data = std::move(GLWidget::stlData());
         m_vertexBuffer.allocate( data.vertices.get(), data.numTriangles * 3 * sizeof(glm::vec4) );
         return;
@@ -246,7 +250,7 @@ void GLWidget::initializeGL() {
       model.vertices[triCounter+2] = glm::vec4(x, y, z, 1.0f);
 
       // Attribute byte count
-      fileStream.ignore(2, EOF);
+      file_stream.ignore(2, EOF);
 
       triCounter+=3;
     }
@@ -254,16 +258,96 @@ void GLWidget::initializeGL() {
     return;
   }
 
-  bool loadObjImage(const std::string & file_name) {
+  bool GLWidget::loadObjImage(const std::string & file_name) {
     std::vector< unsigned int > vertex_indices, uv_indices, normal_indices;
     std::vector< glm::vec3 > temp_vertices;
     std::vector< glm::vec2 > temp_uvs;
     std::vector< glm::vec3 > temp_normals;
-    FILE * file = fopen(file_name.c_str(), "r");
-    if( file == NULL ){
-      printf("Impossible to open the file !\n");
-      return false;
+    std::cout << file_name << std::endl;
+    std::ifstream file_stream(file_name);
+    if (file_stream.fail()) {
+      qWarning() << "An error occurred accessing the file does the file exist?";
+      //return false;
     }
+    std::string line;
+    while (getline(file_stream,line))
+    {
+      if(line.substr(0,2) == "v ") {
+        line = line.substr(2);
+        std::stringstream ss(line);
+        float x, y, z;
+        ss >> x;
+        ss >> y;
+        ss >> z;
+        temp_vertices.push_back(glm::vec3(x, y, z));
+      } else if (line.substr(0,3) == "vt ") {
+        line = line.substr(2);
+        std::stringstream ss(line);
+        float x, y;
+        ss >> x;
+        ss >> y;
+        temp_uvs.push_back(glm::vec2(x, y));
+      } else if (line.substr(0,3) == "vn ") {
+        line = line.substr(2);
+        std::stringstream ss(line);
+        float x, y, z;
+        ss >> x;
+        ss >> y;
+        ss >> z;
+        temp_normals.push_back(glm::vec3(x, y, z));
+      } else if (line.substr(0,2) == "f ") {
+        line = line.substr(2);
+        std::istringstream vertex_set(line);
+        std::string vertex_values;
+        unsigned int vertex_index[3], uv_index[3], normal_index[3];
+        for (int i = 0; i < 3; ++i) {
+          vertex_set >> vertex_values;
+          unsigned int count = 0;
+          int index = vertex_values.find("/");
+          while (index != std::string::npos || vertex_values != "") {
+            std::string first_value;
+            if (index != std::string::npos) {
+              first_value = vertex_values.substr(0,index);
+              vertex_values.erase(0, index + 1);
+            }
+            else {
+              first_value = vertex_values;
+              vertex_values = "";
+            }
+            if(first_value != "") {
+              std::stringstream ss(first_value);
+              unsigned int value;
+
+              ss >> value;
+              if(count == 0) {
+                vertex_indices.push_back(value);
+              } else if (count == 1) {
+                uv_indices.push_back(value);
+              } else if (count == 2) {
+                normal_indices.push_back(value);
+              }
+            }
+            ++count;
+            index = vertex_values.find("/");
+          }
+        }
+      } else {
+        // Not yet supported
+      }
+    }
+    GLWidget::stlData model; //Change this -- this is just an inital pass
+    model.numTriangles = vertex_indices.size() / 3;
+
+    model.normals = std::unique_ptr<glm::vec3[]>(new glm::vec3[model.numTriangles * 3]);
+    model.vertices = std::unique_ptr<glm::vec4[]>(new glm::vec4[model.numTriangles * 3]);
+    for (unsigned int i = 0; i < vertex_indices.size(); ++i) {
+
+      model.vertices[i] = glm::vec4(temp_vertices[vertex_indices[i] - 1], 1.0f);
+      //glm::vec2 uv = temp_uvs[uv_indices[i] - 1];
+      model.normals[i] = temp_normals[normal_indices[i] - 1];
+    }
+    data = std::move(model);
+    return true;
   }
 
   void GLWidget::resizeGL(int w, int h) {

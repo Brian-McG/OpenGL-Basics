@@ -15,12 +15,15 @@ target.path = boom
 INSTALLS += target
 win32 {
 copydata.commands = @call copy $$PWD/bunny.stl $$OUT_PWD
+copydata.commands = @call copy $$PWD/bunny.obj $$OUT_PWD
 }
 macx {
 copydata.commands = cp $$PWD/bunny.stl $$OUT_PWD
+copydata.commands = cp $$PWD/bunny.obj $$OUT_PWD
 }
 unix {
 copydata.commands = cp $$PWD/bunny.stl $$OUT_PWD
+copydata.commands = cp $$PWD/bunny.obj $$OUT_PWD
 }
 first.depends = $(first) copydata
 export(first.depends)
