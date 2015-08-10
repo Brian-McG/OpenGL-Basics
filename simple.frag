@@ -16,9 +16,12 @@ uniform vec4 diffprod_static_light;
 uniform vec4 specprod_static_light;
 uniform float shine_static_light;
 in vec3 light_position_static;  // Camera space camera position
-
 in vec3 norm;		// Camera space normal
 in vec3 eye;		// Camera space eye to vertex
+
+// Textures
+in vec2 uv_fragment; // Texture coordinate
+uniform sampler2D texture_sampler;
 
 void main(void)
 {
@@ -45,5 +48,6 @@ void main(void)
 	diff_static = kd_static * diffprod_static_light;
 	spec_static = ks_static * specprod_static_light;
 
-	out_col = vec4((amb_rotating + diff_rotating + spec_rotating).rgb + (amb_static + diff_static + spec_static).rgb, 1.0);
+	out_col = vec4(texture2D(texture_sampler, uv_fragment).rgb, 1.0);
+	//out_col = vec4((amb_rotating + diff_rotating + spec_rotating).rgb + (amb_static + diff_static + spec_static).rgb, 1.0);
 }

@@ -19,6 +19,7 @@
 #define FRAG_SHADER ":/simple.frag"
 #define BUNNY_LOCATION "bunny.stl"
 #define BUNNY_LOCATION_OBJ "bunny.obj"
+#define F16 "/home/brian/Downloads/f16/f16.obj"
 
 GLWidget::GLWidget(const QGLFormat& format, QWidget* parent)
 : QGLWidget(format, parent),
@@ -40,7 +41,9 @@ void GLWidget::initializeGL() {
     << QString::fromUtf8(
       reinterpret_cast<const char*>(errorStr), size);
     }
-
+    m_normalBuffer.destroy();
+    m_vertexBuffer.destroy();
+    m_shader.removeAllShaders();
     // get context opengl-version
     qDebug() << "Widget OpenGl: " << format().majorVersion() << "." << format().minorVersion();
     qDebug() << "Context valid: " << context()->isValid();
@@ -61,8 +64,11 @@ void GLWidget::initializeGL() {
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
 
-    //loadSTLFile(BUNNY_LOCATION);
-    loadObjImage(BUNNY_LOCATION_OBJ);
+    if (GLWidget::filename == "") {
+      loadObjImage(F16);
+    } else {
+      loadObjImage(GLWidget::filename);
+    }
 
     // If bunny fails to load, load a placeholder cube
     if (data.numTriangles == 0) {
@@ -113,7 +119,6 @@ void GLWidget::initializeGL() {
     m_shader.enableAttributeArray("vertex");
     m_shader.setAttributeBuffer("vertex", GL_FLOAT, 0, 4);
 
-
     m_normalBuffer.create();
     m_normalBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
     if (!m_normalBuffer.bind()) {
@@ -124,6 +129,22 @@ void GLWidget::initializeGL() {
     m_shader.bind();
     m_shader.enableAttributeArray("normal");
     m_shader.setAttributeBuffer("normal", GL_FLOAT, 0, 3);
+
+    m_uvBuffer.create();
+    m_uvBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    if (!m_uvBuffer.bind()) {
+      qWarning() << "Could not bind vertex buffer to the context";
+      return;
+    }
+    qDebug() << "UV's:" << data.uvs[0][0];
+    m_uvBuffer.allocate(data.uvs.get(), data.numTriangles * 3 * sizeof(glm::vec2));
+    m_shader.bind();
+    m_shader.enableAttributeArray("uv");
+    m_shader.setAttributeBuffer("uv", GL_FLOAT, 0, 2);
+
+    texture = loadBmpImage("/home/brian/Downloads/f16/F16s.bmp");  // Hardcode for now
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
 
     color = std::move(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     GLuint MatrixID = glGetUniformLocation(m_shader.programId(), "MVP");
@@ -144,6 +165,9 @@ void GLWidget::initializeGL() {
     redrawTimer.start();
   }
 
+  void GLWidget::reallocate_buffers() {
+    initializeGL();
+  }
 
   void GLWidget::reset() {
     lastX = 20000;
@@ -267,12 +291,11 @@ void GLWidget::initializeGL() {
     std::ifstream file_stream(file_name);
     if (file_stream.fail()) {
       qWarning() << "An error occurred accessing the file does the file exist?";
-      //return false;
+      // return false;
     }
     std::string line;
-    while (getline(file_stream,line))
-    {
-      if(line.substr(0,2) == "v ") {
+    while (getline(file_stream, line)) {
+      if (line.substr(0, 2) == "v ") {
         line = line.substr(2);
         std::stringstream ss(line);
         float x, y, z;
@@ -280,14 +303,14 @@ void GLWidget::initializeGL() {
         ss >> y;
         ss >> z;
         temp_vertices.push_back(glm::vec3(x, y, z));
-      } else if (line.substr(0,3) == "vt ") {
+      } else if (line.substr(0, 3) == "vt ") {
         line = line.substr(2);
         std::stringstream ss(line);
         float x, y;
         ss >> x;
         ss >> y;
         temp_uvs.push_back(glm::vec2(x, y));
-      } else if (line.substr(0,3) == "vn ") {
+      } else if (line.substr(0, 3) == "vn ") {
         line = line.substr(2);
         std::stringstream ss(line);
         float x, y, z;
@@ -295,7 +318,7 @@ void GLWidget::initializeGL() {
         ss >> y;
         ss >> z;
         temp_normals.push_back(glm::vec3(x, y, z));
-      } else if (line.substr(0,2) == "f ") {
+      } else if (line.substr(0, 2) == "f ") {
         line = line.substr(2);
         std::istringstream vertex_set(line);
         std::string vertex_values;
@@ -307,19 +330,18 @@ void GLWidget::initializeGL() {
           while (index != std::string::npos || vertex_values != "") {
             std::string first_value;
             if (index != std::string::npos) {
-              first_value = vertex_values.substr(0,index);
+              first_value = vertex_values.substr(0, index);
               vertex_values.erase(0, index + 1);
-            }
-            else {
+            } else {
               first_value = vertex_values;
               vertex_values = "";
             }
-            if(first_value != "") {
+            if (first_value != "") {
               std::stringstream ss(first_value);
               unsigned int value;
 
               ss >> value;
-              if(count == 0) {
+              if (count == 0) {
                 vertex_indices.push_back(value);
               } else if (count == 1) {
                 uv_indices.push_back(value);
@@ -335,18 +357,19 @@ void GLWidget::initializeGL() {
         // Not yet supported
       }
     }
-    GLWidget::stlData model; //Change this -- this is just an inital pass
+    GLWidget::stlData model;  // Change this -- this is just an inital pass
     model.numTriangles = vertex_indices.size() / 3;
-
+    qDebug() << "Number of Triangles" << model.numTriangles;
     model.normals = std::unique_ptr<glm::vec3[]>(new glm::vec3[model.numTriangles * 3]);
     model.vertices = std::unique_ptr<glm::vec4[]>(new glm::vec4[model.numTriangles * 3]);
+    model.uvs = std::unique_ptr<glm::vec2[]>(new glm::vec2[model.numTriangles * 3]);
     for (unsigned int i = 0; i < vertex_indices.size(); ++i) {
-
       model.vertices[i] = glm::vec4(temp_vertices[vertex_indices[i] - 1], 1.0f);
-      //glm::vec2 uv = temp_uvs[uv_indices[i] - 1];
+      model.uvs[i] = temp_uvs[uv_indices[i] - 1];
       model.normals[i] = temp_normals[normal_indices[i] - 1];
     }
     data = std::move(model);
+    qDebug() << "Complete loading obj";
     return true;
   }
 
@@ -407,6 +430,9 @@ void GLWidget::initializeGL() {
     GLuint modelID = glGetUniformLocation(m_shader.programId(), "model");
     glUniformMatrix4fv(modelID, 1, GL_FALSE, &Model[0][0]);
 
+    GLuint texture_id  = glGetUniformLocation(m_shader.programId(), "texture_sampler");
+    glUniform1i(texture_id, 0);
+
     // Clear the buffer with the current clearing color
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -414,8 +440,7 @@ void GLWidget::initializeGL() {
     glDrawArrays(GL_TRIANGLES, 0, data.numTriangles * 3);
   }
 
-  QGLFormat GLWidget::desiredFormat()
-  {
+  QGLFormat GLWidget::desiredFormat() {
     QGLFormat fmt;
     fmt.setSwapInterval(1);
     return fmt;
@@ -617,22 +642,116 @@ void GLWidget::initializeGL() {
     }
   }
 
-  bool GLWidget::prepareShaderProgram(const QString& vertexShaderPath,
-    const QString& fragmentShaderPath) {
-      // First we load and compile the vertex shader...
-      bool result = m_shader.addShaderFromSourceFile(QOpenGLShader::Vertex, vertexShaderPath);
-      if ( !result )
-      qWarning() << m_shader.log();
+  bool GLWidget::prepareShaderProgram(const QString& vertexShaderPath, const QString& fragmentShaderPath) {
+    // First we load and compile the vertex shader...
+    bool result = m_shader.addShaderFromSourceFile(QOpenGLShader::Vertex, vertexShaderPath);
+    if ( !result )
+    qWarning() << m_shader.log();
 
-      // ...now the fragment shader...
-      result = m_shader.addShaderFromSourceFile(QOpenGLShader::Fragment, fragmentShaderPath);
-      if ( !result )
-      qWarning() << m_shader.log();
+    // ...now the fragment shader...
+    result = m_shader.addShaderFromSourceFile(QOpenGLShader::Fragment, fragmentShaderPath);
+    if ( !result )
+    qWarning() << m_shader.log();
 
-      // ...and finally we link them to resolve any references.
-      result = m_shader.link();
-      if ( !result )
-      qWarning() << "Could not link shader program:" << m_shader.log();
+    // ...and finally we link them to resolve any references.
+    result = m_shader.link();
+    if ( !result )
+    qWarning() << "Could not link shader program:" << m_shader.log();
 
-      return result;
+    return result;
+  }
+
+  void GLWidget::setFileName(const std::string & name) {
+    filename = name;
+  }
+
+  // Currently using an existing implementation to save time
+  // http://stackoverflow.com/a/20596072
+  GLuint GLWidget::loadBmpImage(const std::string & imagepath) {
+    printf("Reading image %s\n", imagepath.c_str());
+
+    // Data read from the header of the BMP file
+    unsigned char header[54];
+    unsigned int dataPos;
+    unsigned int imageSize;
+    unsigned int width, height;
+    // Actual RGB data
+    unsigned char * data;
+
+    // Open the file
+    FILE * file = fopen(imagepath.c_str(), "rb");
+    if (!file) {
+      printf("%s could not be opened. Are you in the right directory ? Don't forget to read the FAQ !\n", imagepath.c_str());
+      getchar();
+      return 0;
     }
+    // Read the header, i.e. the 54 first bytes
+    // If less than 54 bytes are read, problem
+    if (fread(header, 1, 54, file) != 54) {
+      printf("Not a correct BMP file\n");
+      return 0;
+    }
+    // A BMP files always begins with "BM"
+    if (header[0] != 'B' || header[1] != 'M') {
+      printf("Not a correct BMP file\n");
+      return 0;
+    }
+    // Make sure this is a 24bpp file
+    if (*reinterpret_cast<int*>(&header[0x1E]) != 0) {
+      printf("Not a correct BMP file\n");
+      return 0;
+    }
+    if (*reinterpret_cast<int*>(&header[0x1C]) != 24) {
+      printf("Not a correct BMP file\n");
+      return 0;
+    }
+    // Read the information about the image
+    dataPos    = *reinterpret_cast<int*>(&header[0x0A]);
+    imageSize  = *reinterpret_cast<int*>(&header[0x22]);
+    width      = *reinterpret_cast<int*>(&header[0x12]);
+    height     = *reinterpret_cast<int*>(&header[0x16]);
+
+    // Some BMP files are misformatted, guess missing information
+    if (imageSize == 0) {
+      imageSize = width * height * 3;  // 3 : one byte for each Red, Green and Blue component
+    }
+    if (dataPos == 0) {
+      dataPos = 54;                    // The BMP header is done that way
+    }
+    
+    // Create a buffer
+    data = new unsigned char[imageSize];
+
+    // Read the actual data from the file into the buffer
+    fread(data, 1, imageSize, file);
+
+    // Everything is in memory now, the file wan be closed
+    fclose(file);
+
+    // Create one OpenGL texture
+    GLuint textureID;
+    glGenTextures(1, &textureID);
+
+    // "Bind" the newly created texture : all future texture functions will modify this texture
+    glBindTexture(GL_TEXTURE_2D, textureID);
+
+    // Give the image to OpenGL
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
+
+    // OpenGL has now copied the data. Free our own version
+    delete [] data;
+
+    // Poor filtering, or ...
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+    // ... nice trilinear filtering.
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    // Return the ID of the texture we just created
+    return textureID;
+  }

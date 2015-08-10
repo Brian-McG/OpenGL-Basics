@@ -59,9 +59,10 @@ void window::addConections() {
 }
 
 void window::open() {
-    QString fileName = QFileDialog::getOpenFileName(this, tr("Open stl file"), "", tr("*.stl"));
+    QString fileName = QFileDialog::getOpenFileName(this, tr("Open stl file"), "", tr("*.obj"));
     if (fileName != "") {
-        glWidget->loadSTLFile(fileName.toStdString());
+      glWidget->setFileName(fileName.toStdString());
+      glWidget->reallocate_buffers();
     }
 }
 

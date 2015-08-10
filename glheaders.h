@@ -1,6 +1,4 @@
-// Brian Mc George
-// MCGBRI004
-// 25-04-2015
+// Copyright [2015] <Benjamin Hugo>
 // Provided header
 
 #ifndef GLHEADERS_H_
@@ -12,54 +10,55 @@
 #include <QString>
 
 /*
- * Append the CE() macro on the same line after an OpenGL function call to check for errors.
- * Use IF_FAIL("Error message") = ErrorCodeReturningFunction(); To print out a message on failure.
- */
+* Append the CE() macro on the same line after an OpenGL function call to check for errors.
+* Use IF_FAIL("Error message") = ErrorCodeReturningFunction(); To print out a message on failure.
+*/
 
 class CheckSucc{
  public:
-    CheckSucc(QString msg){
-        succ = true;
-        msg_ = msg;
-    }
+  explicit CheckSucc(QString msg) {
+    succ = true;
+    msg_ = msg;
+  }
 
-    CheckSucc operator = (bool rhs){
-        succ = rhs;
-        if(!rhs)
-            qDebug() << msg_;
-        return *this;
+  CheckSucc operator = (bool rhs) {
+    succ = rhs;
+    if (!rhs) {
+      qDebug() << msg_;
+      return *this;
     }
+  }
 
-    CheckSucc operator = (int rhs){
-        if(rhs == -1){
-            succ = false;
-            qDebug() << msg_;
-        }
-        return *this;
+  CheckSucc operator = (int rhs) {
+    if (rhs == -1) {
+      succ = false;
+      qDebug() << msg_;
     }
+    return *this;
+  }
 
-    bool operator == (bool rhs){
-        return this->succ == rhs;
-    }
+  bool operator == (bool rhs) {
+    return this->succ == rhs;
+  }
 
 
  private:
-    bool succ;
-    QString msg_;
+  bool succ;
+  QString msg_;
 };
 
 #define IF_FAIL(msg) CheckSucc(QString(QString(msg) + QString(" @ Line ") + QString::number(__LINE__) +  QString(" of ") +  QString(__FILE__)))
 
 #ifdef CC_GL_DEBUG_
-    static GLenum gl_err = 0;
-    #define CE() gl_err = glGetError();\
-    if (gl_err != GL_NO_ERROR) {\
-        const char* err_str = reinterpret_cast<const char *>(gluErrorString(gl_err));\
-        QString errString(err_str);\
-        qDebug() << "GL Error:" << errString << "on line" << __LINE__ << "of" << __FILE__;\
-    }
+static GLenum gl_err = 0;
+#define CE() gl_err = glGetError();\
+if (gl_err != GL_NO_ERROR) {\
+  const char* err_str = reinterpret_cast<const char *>(gluErrorString(gl_err));\
+  QString errString(err_str);\
+  qDebug() << "GL Error:" << errString << "on line" << __LINE__ << "of" << __FILE__;\
+}
 #else
-    #define CE()
+#define CE()
 #endif  // CC_GL_DEBUG_
 
 #endif  // GLHEADERS_H_
