@@ -1,7 +1,6 @@
 #version 330
 // Output color
 out vec4 out_col;
-out vec4 out_col2;
 
 // Rotating light color
 uniform vec4 ambprod_rotating_light;
@@ -21,7 +20,9 @@ in vec3 eye;		// Camera space eye to vertex
 
 // Textures
 in vec2 uv_fragment; // Texture coordinate
-uniform sampler2D texture_sampler;
+flat in int sample_index;
+uniform sampler2D texture_sampler_f16s;
+uniform sampler2D texture_sampler_f16t;
 
 void main(void)
 {
@@ -48,6 +49,16 @@ void main(void)
 	diff_static = kd_static * diffprod_static_light;
 	spec_static = ks_static * specprod_static_light;
 
-	out_col = vec4(texture2D(texture_sampler, uv_fragment).rgb, 1.0);
-	//out_col = vec4((amb_rotating + diff_rotating + spec_rotating).rgb + (amb_static + diff_static + spec_static).rgb, 1.0);
+	// Draw correct texture
+	if (sample_index == 1) {
+		vec3 texture = (texture2D(texture_sampler_f16s, uv_fragment).rgb);
+		vec3 static_lighting = amb_static.rgb + (texture * diff_static.rgb) + (texture * spec_static.rgb);
+		vec3 rotating_lighting = amb_rotating.rgb + (specprod_rotating_light.rgb * ks_rotating) + (diffprod_rotating_light.rgb * kd_rotating);
+		out_col = vec4(static_lighting + rotating_lighting, 1.0);
+	} else if(sample_index == 2) {
+		vec3 texture = (texture2D(texture_sampler_f16t, uv_fragment).rgb);
+		vec3 static_lighting = amb_static.rgb + (texture * diff_static.rgb) + (texture * spec_static.rgb);
+		vec3 rotating_lighting = amb_rotating.rgb + (specprod_rotating_light.rgb * ks_rotating) + (diffprod_rotating_light.rgb * kd_rotating);
+		out_col = vec4(static_lighting + rotating_lighting, 1.0);
+	}
 }

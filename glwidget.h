@@ -24,6 +24,7 @@ class GLWidget : public QGLWidget {
     std::unique_ptr<glm::vec4[]> vertices;
     std::unique_ptr<glm::vec3[]> normals;
     std::unique_ptr<glm::vec2[]> uvs;
+    std::unique_ptr<int[]> texture_id;
   };
   struct obj_model {
     int triangles = 0;
@@ -92,7 +93,8 @@ class GLWidget : public QGLWidget {
   int texture_height;
   short bits_per_pixel = 0;
   std::vector<unsigned char> pixels;
-  GLuint texture;
+  GLuint f16s;
+  GLuint f16t;
   bool prepareShaderProgram(const QString& vertexShaderPath,
     const QString& fragmentShaderPath);
 
@@ -100,6 +102,7 @@ class GLWidget : public QGLWidget {
     QOpenGLBuffer m_vertexBuffer;
     QOpenGLBuffer m_normalBuffer;
     QOpenGLBuffer m_uvBuffer;
+    QOpenGLBuffer m_texture_id;
 
     // Obj related
     std::vector<glm::vec3> out_verticies;

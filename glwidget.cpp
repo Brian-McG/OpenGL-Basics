@@ -11,6 +11,7 @@
 #include <stdexcept>
 #include <sstream>
 #include <algorithm>
+#include <unordered_map>
 #include "./glwidget.h"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/transform.hpp"
@@ -122,7 +123,7 @@ void GLWidget::initializeGL() {
     m_normalBuffer.create();
     m_normalBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
     if (!m_normalBuffer.bind()) {
-      qWarning() << "Could not bind vertex buffer to the context";
+      qWarning() << "Could not bind normal buffer to the context";
       return;
     }
     m_normalBuffer.allocate(data.normals.get(), data.numTriangles * 3 * sizeof(glm::vec3));
@@ -133,7 +134,7 @@ void GLWidget::initializeGL() {
     m_uvBuffer.create();
     m_uvBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
     if (!m_uvBuffer.bind()) {
-      qWarning() << "Could not bind vertex buffer to the context";
+      qWarning() << "Could not bind uv buffer to the context";
       return;
     }
     qDebug() << "UV's:" << data.uvs[0][0];
@@ -142,9 +143,23 @@ void GLWidget::initializeGL() {
     m_shader.enableAttributeArray("uv");
     m_shader.setAttributeBuffer("uv", GL_FLOAT, 0, 2);
 
-    texture = loadBmpImage("/home/brian/Downloads/f16/F16s.bmp");  // Hardcode for now
+    m_texture_id.create();
+    m_texture_id.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    if (!m_texture_id.bind()) {
+      qWarning() << "Could not bind texture id to the context";
+      return;
+    }
+    m_texture_id.allocate(data.texture_id.get(), data.numTriangles * 3 * sizeof(int));
+    m_shader.bind();
+    m_shader.enableAttributeArray("sampler_index");
+    m_shader.setAttributeBuffer("sampler_index", GL_FLOAT, 0, 1);
+
+    f16s= loadBmpImage("/home/brian/Downloads/f16/F16s.bmp");  // Hardcode for now -- Change this
+    f16t = loadBmpImage("/home/brian/Downloads/f16/F16t.bmp");  // Hardcode for now -- Change this
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture);
+    glBindTexture(GL_TEXTURE_2D, f16s);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, f16t);
 
     color = std::move(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     GLuint MatrixID = glGetUniformLocation(m_shader.programId(), "MVP");
@@ -283,11 +298,14 @@ void GLWidget::initializeGL() {
   }
 
   bool GLWidget::loadObjImage(const std::string & file_name) {
-    std::vector< unsigned int > vertex_indices, uv_indices, normal_indices;
+    std::vector< unsigned int > vertex_indices, uv_indices, normal_indices, texture_indices;
     std::vector< glm::vec3 > temp_vertices;
     std::vector< glm::vec2 > temp_uvs;
     std::vector< glm::vec3 > temp_normals;
     std::cout << file_name << std::endl;
+    unsigned int texture_index = 0;
+    unsigned int texture_index_count = 0;
+    std::unordered_map<std::string,int> texture_map;
     std::ifstream file_stream(file_name);
     if (file_stream.fail()) {
       qWarning() << "An error occurred accessing the file does the file exist?";
@@ -319,11 +337,13 @@ void GLWidget::initializeGL() {
         ss >> z;
         temp_normals.push_back(glm::vec3(x, y, z));
       } else if (line.substr(0, 2) == "f ") {
+
         line = line.substr(2);
         std::istringstream vertex_set(line);
         std::string vertex_values;
         unsigned int vertex_index[3], uv_index[3], normal_index[3];
         for (int i = 0; i < 3; ++i) {
+          texture_indices.push_back(texture_index);
           vertex_set >> vertex_values;
           unsigned int count = 0;
           int index = vertex_values.find("/");
@@ -353,6 +373,18 @@ void GLWidget::initializeGL() {
             index = vertex_values.find("/");
           }
         }
+      } else if (line.length() > 7 && line.substr(0, 7) == "usemtl ") {
+        line = line.substr(7);
+
+        std::unordered_map<std::string,int>::const_iterator got = texture_map.find(line);
+        if(got == texture_map.end()) {
+          ++texture_index_count;
+          texture_map.insert(std::pair<std::string, int>(line, texture_index_count));
+          qDebug() << texture_index_count << "First";
+          texture_index = texture_index_count;
+        } else {
+          texture_index = got->second;
+        }
       } else {
         // Not yet supported
       }
@@ -363,10 +395,12 @@ void GLWidget::initializeGL() {
     model.normals = std::unique_ptr<glm::vec3[]>(new glm::vec3[model.numTriangles * 3]);
     model.vertices = std::unique_ptr<glm::vec4[]>(new glm::vec4[model.numTriangles * 3]);
     model.uvs = std::unique_ptr<glm::vec2[]>(new glm::vec2[model.numTriangles * 3]);
+    model.texture_id = std::unique_ptr<int[]>(new int[model.numTriangles * 3]);
     for (unsigned int i = 0; i < vertex_indices.size(); ++i) {
       model.vertices[i] = glm::vec4(temp_vertices[vertex_indices[i] - 1], 1.0f);
       model.uvs[i] = temp_uvs[uv_indices[i] - 1];
       model.normals[i] = temp_normals[normal_indices[i] - 1];
+      model.texture_id[i] = texture_indices[i];
     }
     data = std::move(model);
     qDebug() << "Complete loading obj";
@@ -408,16 +442,16 @@ void GLWidget::initializeGL() {
     // glm::vec4 specprod_rotating_light = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
     glm::vec4 ambprod_rotating_light = glm::vec4(0.00f, 0.00f, 0.00f, 1.0f);
     glm::vec4 diffprod_rotating_light = glm::vec4(0.0f, 0.3f, 0.0f, 1.0f);
-    glm::vec4 specprod_rotating_light = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+    glm::vec4 specprod_rotating_light = glm::vec4(0.0f, 0.6f, 0.0f, 1.0f);
     glUniform4f(glGetUniformLocation(m_shader.programId(), "ambprod_rotating_light"), ambprod_rotating_light[0], ambprod_rotating_light[1], ambprod_rotating_light[2], ambprod_rotating_light[3]);
     glUniform4f(glGetUniformLocation(m_shader.programId(), "diffprod_rotating_light"), diffprod_rotating_light[0], diffprod_rotating_light[1], diffprod_rotating_light[2], diffprod_rotating_light[3]);
     glUniform4f(glGetUniformLocation(m_shader.programId(), "specprod_rotating_light"), specprod_rotating_light[0], specprod_rotating_light[1], specprod_rotating_light[2], specprod_rotating_light[3]);
-    glUniform1f(glGetUniformLocation(m_shader.programId(), "shine_rotating_light"), 100.0);
+    glUniform1f(glGetUniformLocation(m_shader.programId(), "shine_rotating_light"), 500.0);
 
     glm::vec3 static_light(0.0f, 0.0f, 10.0f);
     glUniform3f(glGetUniformLocation(m_shader.programId(), "static_light"), static_light[0], static_light[1], static_light[2]);
-    glm::vec4 ambprod_static_light = glm::vec4(0.05, 0.05, 0.05, 1.0);
-    glm::vec4 diffprod_static_light = glm::vec4(0.3, 0.3, 0.3, 1.0);
+    glm::vec4 ambprod_static_light = glm::vec4(0.01, 0.01, 0.01, 1.0);
+    glm::vec4 diffprod_static_light = glm::vec4(0.6, 0.6, 0.6, 1.0);
     glm::vec4 specprod_static_light = glm::vec4(0.6, 0.6, 0.6, 1.0);
     glUniform4f(glGetUniformLocation(m_shader.programId(), "ambprod_static_light"), ambprod_static_light[0], ambprod_static_light[1], ambprod_static_light[2], ambprod_static_light[3]);
     glUniform4f(glGetUniformLocation(m_shader.programId(), "diffprod_static_light"), diffprod_static_light[0], diffprod_static_light[1], diffprod_static_light[2], diffprod_static_light[3]);
@@ -430,8 +464,10 @@ void GLWidget::initializeGL() {
     GLuint modelID = glGetUniformLocation(m_shader.programId(), "model");
     glUniformMatrix4fv(modelID, 1, GL_FALSE, &Model[0][0]);
 
-    GLuint texture_id  = glGetUniformLocation(m_shader.programId(), "texture_sampler");
-    glUniform1i(texture_id, 0);
+    GLuint texture_id_16s  = glGetUniformLocation(m_shader.programId(), "texture_sampler_f16s");
+    glUniform1i(texture_id_16s, 0);
+    GLuint texture_id_f16t  = glGetUniformLocation(m_shader.programId(), "texture_sampler_f16t");
+    glUniform1i(texture_id_f16t, 1);
 
     // Clear the buffer with the current clearing color
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -718,7 +754,7 @@ void GLWidget::initializeGL() {
     if (dataPos == 0) {
       dataPos = 54;                    // The BMP header is done that way
     }
-    
+
     // Create a buffer
     data = new unsigned char[imageSize];
 
@@ -741,16 +777,12 @@ void GLWidget::initializeGL() {
     // OpenGL has now copied the data. Free our own version
     delete [] data;
 
-    // Poor filtering, or ...
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-    // ... nice trilinear filtering.
+    glGenerateMipmap(GL_TEXTURE_2D);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glGenerateMipmap(GL_TEXTURE_2D);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    // glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);  // Not part of core openGL, disabled for now
 
     // Return the ID of the texture we just created
     return textureID;
