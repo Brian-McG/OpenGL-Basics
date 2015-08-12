@@ -20,7 +20,7 @@
 #define FRAG_SHADER ":/simple.frag"
 #define BUNNY_LOCATION "bunny.stl"
 #define BUNNY_LOCATION_OBJ "bunny.obj"
-#define F16 "/home/brian/Downloads/f16/f16.obj"
+#define F16 "/home/m/mcgbri004/F16/f16.obj"
 
 GLWidget::GLWidget(const QGLFormat& format, QWidget* parent)
 : QGLWidget(format, parent),
@@ -154,12 +154,15 @@ void GLWidget::initializeGL() {
     m_shader.enableAttributeArray("sampler_index");
     m_shader.setAttributeBuffer("sampler_index", GL_FLOAT, 0, 1);
 
-    f16s= loadBmpImage("/home/brian/Downloads/f16/F16s.bmp");  // Hardcode for now -- Change this
-    f16t = loadBmpImage("/home/brian/Downloads/f16/F16t.bmp");  // Hardcode for now -- Change this
+    f16s= loadBmpImage("/home/m/mcgbri004/F16/F16s.bmp");  // Hardcode for now -- Change this
+    f16t = loadBmpImage("/home/m/mcgbri004/F16/F16t.bmp");  // Hardcode for now -- Change this
+    normal_map = loadBmpImage("/home/m/mcgbri004/F16/normal_map.bmp");  // Hardcode for now -- Change this
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, f16s);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, f16t);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, normal_map);
 
     color = std::move(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     GLuint MatrixID = glGetUniformLocation(m_shader.programId(), "MVP");
@@ -396,15 +399,35 @@ void GLWidget::initializeGL() {
     model.vertices = std::unique_ptr<glm::vec4[]>(new glm::vec4[model.numTriangles * 3]);
     model.uvs = std::unique_ptr<glm::vec2[]>(new glm::vec2[model.numTriangles * 3]);
     model.texture_id = std::unique_ptr<int[]>(new int[model.numTriangles * 3]);
+    model.tangents = std::unique_ptr<glm::vec3[]>(new glm::vec3[model.numTriangles * 3]);
+    model.bitangents = std::unique_ptr<glm::vec3[]>(new glm::vec3[model.numTriangles * 3]);
     for (unsigned int i = 0; i < vertex_indices.size(); ++i) {
       model.vertices[i] = glm::vec4(temp_vertices[vertex_indices[i] - 1], 1.0f);
       model.uvs[i] = temp_uvs[uv_indices[i] - 1];
       model.normals[i] = temp_normals[normal_indices[i] - 1];
       model.texture_id[i] = texture_indices[i];
     }
+    setTangentVectors(model);
     data = std::move(model);
     qDebug() << "Complete loading obj";
     return true;
+  }
+
+  void GLWidget::setTangentVectors(stlData & model) {
+    for(unsigned int i = 0; i < model.numTriangles * 3; i+=3) {
+      glm::vec3 delta_pos_1 = glm::vec3(model.vertices[i + 1].x, model.vertices[i + 1].y, model.vertices[i + 1].z) - glm::vec3(model.vertices[i].x, model.vertices[i].y, model.vertices[i].z);
+      glm::vec3 delta_pos_2 = glm::vec3(model.vertices[i + 2].x, model.vertices[i + 2].y, model.vertices[i + 2].z) - glm::vec3(model.vertices[i].x, model.vertices[i].y, model.vertices[i].z);
+      glm::vec2 delta_uv_1 = model.uvs[i + 1] - model.uvs[i];
+      glm::vec2 delta_uv_2 = model.uvs[i + 2] - model.uvs[i];
+      float r = 1.0f / (delta_uv_1.x * delta_uv_2.y - delta_uv_1.y * delta_uv_2.x);
+      glm::vec3 tangent = (delta_pos_1 * delta_uv_2.y - delta_pos_2 * delta_uv_1.y) * r;
+      glm::vec3 bitangent = (delta_pos_2 * delta_uv_1.x - delta_pos_1 * delta_uv_2.x) * r;
+      for(unsigned int g = 0; g < 3; ++g) {
+        model.tangents[g] = tangent;
+        model.bitangents[g] = bitangent;
+      }
+
+    }
   }
 
   void GLWidget::resizeGL(int w, int h) {

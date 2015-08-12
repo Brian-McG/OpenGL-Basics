@@ -25,12 +25,8 @@ class GLWidget : public QGLWidget {
     std::unique_ptr<glm::vec3[]> normals;
     std::unique_ptr<glm::vec2[]> uvs;
     std::unique_ptr<int[]> texture_id;
-  };
-  struct obj_model {
-    int triangles = 0;
-    std::unique_ptr<glm::vec4[]> vertices;
-    std::unique_ptr<glm::vec3[]> normals;
-    std::unique_ptr<glm::vec2[]> uvs;
+    std::unique_ptr<glm::vec3[]> tangents;
+    std::unique_ptr<glm::vec3[]> bitangents;
   };
   void loadSTLFile(const std::string & fileName);
   bool loadObjImage(const std::string & fileName);
@@ -38,6 +34,7 @@ class GLWidget : public QGLWidget {
   void reset();
   void setFileName(const std::string & name);
   GLuint loadBmpImage(const std::string & imagepath);
+  void setTangentVectors(stlData & model);
 
  protected:
   virtual void initializeGL();
@@ -95,6 +92,7 @@ class GLWidget : public QGLWidget {
   std::vector<unsigned char> pixels;
   GLuint f16s;
   GLuint f16t;
+  GLuint normal_map;
   bool prepareShaderProgram(const QString& vertexShaderPath,
     const QString& fragmentShaderPath);
 
