@@ -1,8 +1,9 @@
 // Copyright[2015] <Brian Mc George>
 // MCGBRI004
 
-#include <QCoreApplication>
 #include <QKeyEvent>
+#include <QCoreApplication>
+#include <utility>
 #include <string>
 #include <fstream>
 #include <vector>
@@ -20,7 +21,7 @@
 #define FRAG_SHADER ":/simple.frag"
 #define BUNNY_LOCATION "bunny.stl"
 #define BUNNY_LOCATION_OBJ "bunny.obj"
-#define F16 "/home/m/mcgbri004/F16/f16.obj"
+#define F16 "/home/brian/Downloads/f16/f16.obj"
 
 GLWidget::GLWidget(const QGLFormat& format, QWidget* parent)
 : QGLWidget(format, parent),
@@ -65,11 +66,13 @@ void GLWidget::initializeGL() {
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
 
+    qDebug() << "Load obj";
     if (GLWidget::filename == "") {
       loadObjImage(F16);
     } else {
       loadObjImage(GLWidget::filename);
     }
+    qDebug() << "Obj load complete";
 
     // If bunny fails to load, load a placeholder cube
     if (data.numTriangles == 0) {
@@ -94,6 +97,7 @@ void GLWidget::initializeGL() {
     Model = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0));
     MVP = Projection * View * translateMat * zRotMat * yRotMat * xRotMat * Model;
 
+    // Vertex
     m_vertexBuffer.create();
     m_vertexBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
     if (!m_vertexBuffer.bind()) {
@@ -120,6 +124,7 @@ void GLWidget::initializeGL() {
     m_shader.enableAttributeArray("vertex");
     m_shader.setAttributeBuffer("vertex", GL_FLOAT, 0, 4);
 
+    // Normals
     m_normalBuffer.create();
     m_normalBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
     if (!m_normalBuffer.bind()) {
@@ -131,6 +136,7 @@ void GLWidget::initializeGL() {
     m_shader.enableAttributeArray("normal");
     m_shader.setAttributeBuffer("normal", GL_FLOAT, 0, 3);
 
+    // UV
     m_uvBuffer.create();
     m_uvBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
     if (!m_uvBuffer.bind()) {
@@ -143,6 +149,7 @@ void GLWidget::initializeGL() {
     m_shader.enableAttributeArray("uv");
     m_shader.setAttributeBuffer("uv", GL_FLOAT, 0, 2);
 
+    // Texture ID
     m_texture_id.create();
     m_texture_id.setUsagePattern(QOpenGLBuffer::StaticDraw);
     if (!m_texture_id.bind()) {
@@ -154,9 +161,34 @@ void GLWidget::initializeGL() {
     m_shader.enableAttributeArray("sampler_index");
     m_shader.setAttributeBuffer("sampler_index", GL_FLOAT, 0, 1);
 
-    f16s= loadBmpImage("/home/m/mcgbri004/F16/F16s.bmp");  // Hardcode for now -- Change this
-    f16t = loadBmpImage("/home/m/mcgbri004/F16/F16t.bmp");  // Hardcode for now -- Change this
-    normal_map = loadBmpImage("/home/m/mcgbri004/F16/normal_map.bmp");  // Hardcode for now -- Change this
+    // Tangent
+    m_tangent_buffer.create();
+    m_tangent_buffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    if (!m_tangent_buffer.bind()) {
+      qWarning() << "Could not bind normal buffer to the context";
+      return;
+    }
+    m_tangent_buffer.allocate(data.tangents.get(), data.numTriangles * 3 * sizeof(glm::vec3));
+    m_shader.bind();
+    m_shader.enableAttributeArray("tangent");
+    m_shader.setAttributeBuffer("tangent", GL_FLOAT, 0, 3);
+
+    // Bitangent
+    m_bitangent_buffer.create();
+    m_bitangent_buffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    if (!m_bitangent_buffer.bind()) {
+      qWarning() << "Could not bind normal buffer to the context";
+      return;
+    }
+    m_bitangent_buffer.allocate(data.bitangents.get(), data.numTriangles * 3 * sizeof(glm::vec3));
+    m_shader.bind();
+    m_shader.enableAttributeArray("bitangent");
+    m_shader.setAttributeBuffer("bitangent", GL_FLOAT, 0, 3);
+
+    qDebug() << "Gets to bmp load";
+    f16s = loadBmpImage("/home/brian/Downloads/f16/F16s.bmp");  // Hardcode for now -- Change this
+    f16t = loadBmpImage("/home/brian/Downloads/f16/F16t.bmp");  // Hardcode for now -- Change this
+    normal_map = loadBmpImage("/home/brian/Downloads/f16/normal_map.bmp");  // Hardcode for now -- Change this
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, f16s);
     glActiveTexture(GL_TEXTURE1);
@@ -164,6 +196,7 @@ void GLWidget::initializeGL() {
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, normal_map);
 
+    qDebug() << "Texture load complete";
     color = std::move(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     GLuint MatrixID = glGetUniformLocation(m_shader.programId(), "MVP");
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
@@ -308,7 +341,7 @@ void GLWidget::initializeGL() {
     std::cout << file_name << std::endl;
     unsigned int texture_index = 0;
     unsigned int texture_index_count = 0;
-    std::unordered_map<std::string,int> texture_map;
+    std::unordered_map<std::string, int> texture_map;
     std::ifstream file_stream(file_name);
     if (file_stream.fail()) {
       qWarning() << "An error occurred accessing the file does the file exist?";
@@ -340,7 +373,6 @@ void GLWidget::initializeGL() {
         ss >> z;
         temp_normals.push_back(glm::vec3(x, y, z));
       } else if (line.substr(0, 2) == "f ") {
-
         line = line.substr(2);
         std::istringstream vertex_set(line);
         std::string vertex_values;
@@ -379,8 +411,8 @@ void GLWidget::initializeGL() {
       } else if (line.length() > 7 && line.substr(0, 7) == "usemtl ") {
         line = line.substr(7);
 
-        std::unordered_map<std::string,int>::const_iterator got = texture_map.find(line);
-        if(got == texture_map.end()) {
+        std::unordered_map<std::string, int>::const_iterator got = texture_map.find(line);
+        if (got == texture_map.end()) {
           ++texture_index_count;
           texture_map.insert(std::pair<std::string, int>(line, texture_index_count));
           qDebug() << texture_index_count << "First";
@@ -401,9 +433,12 @@ void GLWidget::initializeGL() {
     model.texture_id = std::unique_ptr<int[]>(new int[model.numTriangles * 3]);
     model.tangents = std::unique_ptr<glm::vec3[]>(new glm::vec3[model.numTriangles * 3]);
     model.bitangents = std::unique_ptr<glm::vec3[]>(new glm::vec3[model.numTriangles * 3]);
+
     for (unsigned int i = 0; i < vertex_indices.size(); ++i) {
       model.vertices[i] = glm::vec4(temp_vertices[vertex_indices[i] - 1], 1.0f);
+      if (i < uv_indices.size()) {
       model.uvs[i] = temp_uvs[uv_indices[i] - 1];
+      }
       model.normals[i] = temp_normals[normal_indices[i] - 1];
       model.texture_id[i] = texture_indices[i];
     }
@@ -414,7 +449,7 @@ void GLWidget::initializeGL() {
   }
 
   void GLWidget::setTangentVectors(stlData & model) {
-    for(unsigned int i = 0; i < model.numTriangles * 3; i+=3) {
+    for (unsigned int i = 0; i < model.numTriangles * 3; i += 3) {
       glm::vec3 delta_pos_1 = glm::vec3(model.vertices[i + 1].x, model.vertices[i + 1].y, model.vertices[i + 1].z) - glm::vec3(model.vertices[i].x, model.vertices[i].y, model.vertices[i].z);
       glm::vec3 delta_pos_2 = glm::vec3(model.vertices[i + 2].x, model.vertices[i + 2].y, model.vertices[i + 2].z) - glm::vec3(model.vertices[i].x, model.vertices[i].y, model.vertices[i].z);
       glm::vec2 delta_uv_1 = model.uvs[i + 1] - model.uvs[i];
@@ -422,11 +457,20 @@ void GLWidget::initializeGL() {
       float r = 1.0f / (delta_uv_1.x * delta_uv_2.y - delta_uv_1.y * delta_uv_2.x);
       glm::vec3 tangent = (delta_pos_1 * delta_uv_2.y - delta_pos_2 * delta_uv_1.y) * r;
       glm::vec3 bitangent = (delta_pos_2 * delta_uv_1.x - delta_pos_1 * delta_uv_2.x) * r;
-      for(unsigned int g = 0; g < 3; ++g) {
-        model.tangents[g] = tangent;
-        model.bitangents[g] = bitangent;
+      for (unsigned int g = 0; g < 3; ++g) {
+        model.tangents[i + g] = tangent;
+        model.bitangents[i + g] = bitangent;
       }
-
+    }
+    for (unsigned int i = 0; i < model.numTriangles * 3; ++i) {
+      glm::vec3 & normal = model.normals[i];
+      glm::vec3 & tangent = model.tangents[i];
+      glm::vec3 & bitangent = model.bitangents[i];
+      tangent = glm::normalize(tangent - normal * glm::dot(normal, tangent));
+      if (glm::dot(glm::cross(normal, tangent), bitangent) < 0.0f) {
+        tangent = tangent * -1.0f;
+      }
+      qDebug() << glm::dot(normal, tangent);
     }
   }
 
@@ -458,11 +502,7 @@ void GLWidget::initializeGL() {
 
     float radian_rotation = glm::radians(lightRotation);
     glm::vec3 rotated_light = glm::mat3x3(glm::vec3(glm::cos(radian_rotation), 0, glm::sin(radian_rotation)), glm::vec3(0, 1, 0), glm::vec3(-glm::sin(radian_rotation), 0, glm::cos(radian_rotation))) * light_position;
-    // qDebug() << glm::sin(radian_rotation) << " " << rotated_light[0] << " " << rotated_light[1] << " " << rotated_light[2];
     glUniform3f(glGetUniformLocation(m_shader.programId(), "rotating_light"), rotated_light[0], rotated_light[1], rotated_light[2]);
-    // glm::vec4 ambprod_rotating_light = glm::vec4(0.00f, 0.00f, 0.00f, 1.0f);
-    // glm::vec4 diffprod_rotating_light = glm::vec4(0.0f, 0.3f, 0.0f, 1.0f);
-    // glm::vec4 specprod_rotating_light = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
     glm::vec4 ambprod_rotating_light = glm::vec4(0.00f, 0.00f, 0.00f, 1.0f);
     glm::vec4 diffprod_rotating_light = glm::vec4(0.0f, 0.3f, 0.0f, 1.0f);
     glm::vec4 specprod_rotating_light = glm::vec4(0.0f, 0.6f, 0.0f, 1.0f);
@@ -475,7 +515,7 @@ void GLWidget::initializeGL() {
     glUniform3f(glGetUniformLocation(m_shader.programId(), "static_light"), static_light[0], static_light[1], static_light[2]);
     glm::vec4 ambprod_static_light = glm::vec4(0.01, 0.01, 0.01, 1.0);
     glm::vec4 diffprod_static_light = glm::vec4(0.6, 0.6, 0.6, 1.0);
-    glm::vec4 specprod_static_light = glm::vec4(0.6, 0.6, 0.6, 1.0);
+    glm::vec4 specprod_static_light = glm::vec4(1, 1, 1, 1.0);
     glUniform4f(glGetUniformLocation(m_shader.programId(), "ambprod_static_light"), ambprod_static_light[0], ambprod_static_light[1], ambprod_static_light[2], ambprod_static_light[3]);
     glUniform4f(glGetUniformLocation(m_shader.programId(), "diffprod_static_light"), diffprod_static_light[0], diffprod_static_light[1], diffprod_static_light[2], diffprod_static_light[3]);
     glUniform4f(glGetUniformLocation(m_shader.programId(), "specprod_static_light"), specprod_static_light[0], specprod_static_light[1], specprod_static_light[2], specprod_static_light[3]);
@@ -491,6 +531,8 @@ void GLWidget::initializeGL() {
     glUniform1i(texture_id_16s, 0);
     GLuint texture_id_f16t  = glGetUniformLocation(m_shader.programId(), "texture_sampler_f16t");
     glUniform1i(texture_id_f16t, 1);
+    GLuint texture_id_normal  = glGetUniformLocation(m_shader.programId(), "normal_texture_sampler");
+    glUniform1i(texture_id_normal, 2);
 
     // Clear the buffer with the current clearing color
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -727,7 +769,7 @@ void GLWidget::initializeGL() {
   // Currently using an existing implementation to save time
   // http://stackoverflow.com/a/20596072
   GLuint GLWidget::loadBmpImage(const std::string & imagepath) {
-    printf("Reading image %s\n", imagepath.c_str());
+    qDebug() << "reading image" << imagepath.c_str();
 
     // Data read from the header of the BMP file
     unsigned char header[54];
@@ -740,28 +782,28 @@ void GLWidget::initializeGL() {
     // Open the file
     FILE * file = fopen(imagepath.c_str(), "rb");
     if (!file) {
-      printf("%s could not be opened. Are you in the right directory ? Don't forget to read the FAQ !\n", imagepath.c_str());
+      qDebug() << imagepath.c_str() << "could not be opened.";
       getchar();
       return 0;
     }
     // Read the header, i.e. the 54 first bytes
     // If less than 54 bytes are read, problem
     if (fread(header, 1, 54, file) != 54) {
-      printf("Not a correct BMP file\n");
+      qDebug() << imagepath.c_str() <<"not a correct BMP file";
       return 0;
     }
     // A BMP files always begins with "BM"
     if (header[0] != 'B' || header[1] != 'M') {
-      printf("Not a correct BMP file\n");
+      qDebug() << imagepath.c_str() <<"not a correct BMP file";
       return 0;
     }
     // Make sure this is a 24bpp file
     if (*reinterpret_cast<int*>(&header[0x1E]) != 0) {
-      printf("Not a correct BMP file\n");
+      qDebug() << imagepath.c_str() <<"not a correct BMP file";
       return 0;
     }
     if (*reinterpret_cast<int*>(&header[0x1C]) != 24) {
-      printf("Not a correct BMP file\n");
+      qDebug() << imagepath.c_str() <<"not a correct BMP file";
       return 0;
     }
     // Read the information about the image

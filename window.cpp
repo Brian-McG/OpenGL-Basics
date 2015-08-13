@@ -1,12 +1,12 @@
 // Copyright[2015] <Brian Mc George>
 // MCGBRI004
 
-#include <string>
 #include "./glwidget.h"
 #include <QGLFormat>
 #include <QAction>
 #include <QMenuBar>
 #include <QFileDialog>
+#include <string>
 #include "./window.h"
 
 window::window(QWidget *parent) : QMainWindow(parent) {

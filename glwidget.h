@@ -101,6 +101,8 @@ class GLWidget : public QGLWidget {
     QOpenGLBuffer m_normalBuffer;
     QOpenGLBuffer m_uvBuffer;
     QOpenGLBuffer m_texture_id;
+    QOpenGLBuffer m_tangent_buffer;
+    QOpenGLBuffer m_bitangent_buffer;
 
     // Obj related
     std::vector<glm::vec3> out_verticies;
