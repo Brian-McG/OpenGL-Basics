@@ -1,10 +1,12 @@
-HEADERS       = glheaders.h \
-                glwidget.h \  
-    window.h
+HEADERS       = glheaders.hpp \
+                glwidget.hpp \
+                window.hpp \
+                model.hpp
 
 SOURCES       = glwidget.cpp \
                 main.cpp \
-    window.cpp
+                window.cpp \
+                model.cpp
 QT += core gui opengl widgets
 LIBS += -lGLEW
 RESOURCES += resources.qrc
@@ -29,4 +31,3 @@ first.depends = $(first) copydata
 export(first.depends)
 export(copydata.commands)
 QMAKE_EXTRA_TARGETS += first copydata
-

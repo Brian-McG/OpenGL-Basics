@@ -2,7 +2,7 @@
 // MCGBRI004
 
 #include <QApplication>
-#include "./window.h"
+#include "./window.hpp"
 
 int main(int argc, char* argv[]) {
     QApplication a(argc, argv);
