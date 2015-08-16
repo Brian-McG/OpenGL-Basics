@@ -3,6 +3,8 @@
 
 #ifndef MODEL_H_
 #define MODEL_H_
+#include <memory>
+#include <string>
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/transform.hpp"
 namespace mcgbri004 {
@@ -34,6 +36,17 @@ class Model {
   float get_y_translation();
   float get_z_translation();
   void reset();
+  struct ObjModel {
+    int number_of_triangles = 0;
+    std::unique_ptr<glm::vec4[]> vertices;
+    std::unique_ptr<glm::vec3[]> normals;
+    std::unique_ptr<glm::vec2[]> uvs;
+    std::unique_ptr<int[]> texture_id;
+    std::unique_ptr<glm::vec3[]> tangents;
+    std::unique_ptr<glm::vec3[]> bitangents;
+  };
+  ObjModel loadObjImage(const std::string & fileName);
+  void setTangentVectors(ObjModel & model);
 };
 }  // namespace mcgbri004
 #endif  // MODEL_H_

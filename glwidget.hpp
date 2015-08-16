@@ -21,7 +21,7 @@ class GLWidget : public QGLWidget {
  public:
   explicit GLWidget(const QGLFormat& format, QWidget* parent = 0);
   struct ObjModel {
-    int numTriangles = 0;
+    int number_of_triangles = 0;
     std::unique_ptr<glm::vec4[]> vertices;
     std::unique_ptr<glm::vec3[]> normals;
     std::unique_ptr<glm::vec2[]> uvs;
@@ -29,13 +29,10 @@ class GLWidget : public QGLWidget {
     std::unique_ptr<glm::vec3[]> tangents;
     std::unique_ptr<glm::vec3[]> bitangents;
   };
-  void loadSTLFile(const std::string & fileName);
-  bool loadObjImage(const std::string & fileName);
   void reallocate_buffers();
   void reset();
   void setFileName(const std::string & name);
   GLuint loadBmpImage(const std::string & imagepath);
-  void setTangentVectors(ObjModel & model);
   void setNormalMapping(bool state);
 
  protected:
@@ -56,7 +53,6 @@ class GLWidget : public QGLWidget {
   void scaleBy(const int & change);
   bool prepareShaderProgram(const QString& vertexShaderPath, const QString& fragmentShaderPath);
 
-
   QGLFormat desiredFormat();
   glm::mat4 projection_;
   glm::mat4 view_projection_;
@@ -71,7 +67,8 @@ class GLWidget : public QGLWidget {
   char mode_ = -1;
   char rotation_mode_ = -1;
   bool normal_mapping_active_ = true;
-  ObjModel model_;
+  mcgbri004::Model model_;
+  mcgbri004::Model::ObjModel model_obj_;
   std::unique_ptr<mcgbri004::Model> model_transform_;
   std::string filename_;
   GLuint texture_0_;
@@ -85,28 +82,18 @@ class GLWidget : public QGLWidget {
   QOpenGLBuffer m_tangent_buffer_;
   QOpenGLBuffer m_bitangent_buffer_;
 
-/*
-  //lights
+  // Lights
   // Rotating light
-  glm::vec3 rotating_light_1_start_position_ = glm::vec3(0.0f, 0.0f, -10.0f);
-  glm::vec4 ambprod_rotating_light_ = glm::vec4(0.02f, 0.02f, 0.02f, 1.0f);
-  glm::vec4 diffprod_rotating_light_ = glm::vec4(0.3f, 0.1977f, 0.0f, 1.0f);
-  glm::vec4 specprod_rotating_light_ = glm::vec4(1.0f, 0.659f, 0.0f, 1.0f);
-  // Static light
-  glm::vec3 rotating_light_2_start_position_ = glm::vec3(0.0f, 0.0f, -10.0f);
-  glm::vec4 ambprod_static_light_ = glm::vec4(0.02f, 0.02f, 0.02f, 1.0f);
-  glm::vec4 diffprod_static_light_ = glm::vec4(0.0f, 0.3f, 0.201f, 1.0f);
-  glm::vec4 specprod_static_light_ = glm::vec4(0.0f, 1.0f, 0.67f, 1.0f);
-  */
-
   glm::vec3 rotating_light_1_start_position_ = glm::vec3(0.0f, 0.0f, 10.0f);
-  glm::vec4 ambprod_rotating_light_ = glm::vec4(0.01f, 0.01f, 0.01f, 1.0f);
-  glm::vec4 diffprod_rotating_light_ = glm::vec4(0.4f, 0.0f, 0.0f, 1.0f);
-  glm::vec4 specprod_rotating_light_ = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+  glm::vec4 ambprod_rotating_light_1_ = glm::vec4(0.01f, 0.01f, 0.01f, 1.0f);
+  glm::vec4 diffprod_rotating_light_1_ = glm::vec4(0.4f, 0.0f, 0.0f, 1.0f);
+  glm::vec4 specprod_rotating_light_1_ = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+  float shine_rotating_light_1_ = 500.0f;
   // Static light
   glm::vec3 rotating_light_2_start_position_ = glm::vec3(0.0f, 0.0f, 10.0f);
-  glm::vec4 ambprod_static_light_ = glm::vec4(0.01f, 0.01f, 0.01f, 1.0f);
-  glm::vec4 diffprod_static_light_ = glm::vec4(0.0f, 0.4f, 0.0f, 1.0f);
-  glm::vec4 specprod_static_light_ = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+  glm::vec4 ambprod_rotating_light_2_ = glm::vec4(0.01f, 0.01f, 0.01f, 1.0f);
+  glm::vec4 diffprod_rotating_light_2_ = glm::vec4(0.0f, 0.4f, 0.0f, 1.0f);
+  glm::vec4 specprod_rotating_light_2_ = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+  float shine_rotating_light_2_ = 500.0f;
 };
 #endif  // GLWIDGET_H_

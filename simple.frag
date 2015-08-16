@@ -6,23 +6,21 @@
 out vec4 out_col;
 
 // Rotating light color
-uniform vec4 ambprod_rotating_light;
-uniform vec4 diffprod_rotating_light;
-uniform vec4 specprod_rotating_light;
-uniform float shine_rotating_light;
-in vec3 light_position_rotating;  // Camera space camera position
-in vec3 light_position_rotating_tangentspace;
+uniform vec4 ambprod_rotating_light_1;
+uniform vec4 diffprod_rotating_light_1;
+uniform vec4 specprod_rotating_light_1;
+uniform float shine_rotating_light_1;
+in vec3 light_position_rotating_1;
 
 // Static light color
-uniform vec4 ambprod_static_light;
-uniform vec4 diffprod_static_light;
-uniform vec4 specprod_static_light;
-uniform float shine_static_light;
-in vec3 light_position_static;  // Camera space camera position
-in vec3 light_position_static_tangentspace;
+uniform vec4 ambprod_rotating_light_2;
+uniform vec4 diffprod_rotating_light_2;
+uniform vec4 specprod_rotating_light_2;
+uniform float shine_rotating_light_2;
+in vec3 light_position_rotating_2;
+
 in vec3 norm;		// Camera space normal
 in vec3 eye;		// Camera space eye to vertex
-in vec3 eye_tangentspace;
 
 // Textures
 in vec2 uv_fragment; // Texture coordinate
@@ -33,82 +31,48 @@ uniform sampler2D texture_sampler_f16t;
 // Normal Map
 uniform sampler2D normal_texture_sampler;
 uniform bool normal_mapping_active;
-in vec3 tangent0;
-in vec3 normal0;
 in mat3 TBN;
-
-mat3 calculateBumpedNormal() {
-  vec3 normal = normalize(normal0);
-  vec3 tangent = normalize(tangent0);
-  tangent = normalize(tangent - dot(tangent, normal) * normal);
-  vec3 bitangent = cross(tangent, normal);
-  vec3 bumpMapNormal = texture(normal_texture_sampler, uv_fragment).xyz;
-  bumpMapNormal = 2.0 * bumpMapNormal - vec3(1.0, 1.0, 1.0);
-  vec3 newNormal;
-  mat3 TBN = mat3(tangent, bitangent, normal);
-  return TBN;
-}
 
 void main(void)
 {
-  vec3 NN, EE, LRN, LSN;
+  vec3 NN, EE, LRN_1, LRN_2;
   float cosTheta;
   vec3 r;
   float cosAlpha;
-  if(normal_mapping_active) {
+  if (normal_mapping_active) {
     NN = texture(normal_texture_sampler, uv_fragment).xyz;
     NN = 2.0 * NN - 1;
     NN = TBN * normalize(NN);
     NN = normalize(NN);
     EE = normalize(eye);
-    LRN = normalize(light_position_rotating);
-    LSN = normalize(light_position_static);
+    LRN_1 = normalize(light_position_rotating_1);
+    LRN_2 = normalize(light_position_rotating_2);
   } else {
     NN = normalize(norm);
     EE = normalize(eye);
-    LRN = normalize(light_position_rotating);
-    LSN = normalize(light_position_static);
+    LRN_1 = normalize(light_position_rotating_1);
+    LRN_2 = normalize(light_position_rotating_2);
   }
 
-  vec4 amb_rotating, diff_rotating, spec_rotating;
-  vec3 HR = normalize(LRN + EE);
+  vec4 amb_rotating_1, diff_rotating_1, spec_rotating_1;
+  vec3 HR = normalize(LRN_1 + EE);
 
-  vec4 amb_static, diff_static, spec_static;
-  vec3 HS = normalize(LSN + EE);
+  vec4 amb_rotating_2, diff_rotating_2, spec_rotating_2;
+  vec3 HS = normalize(LRN_2 + EE);
 
-  if(normal_mapping_active) {
-    // Rotating light
+  // Rotating light
+  float kd_rotating_1 = max(dot(LRN_1,NN), 0.0);
+  float ks_rotating_1 = pow(max(dot(NN,HR),0.0), shine_rotating_light_1);
+  amb_rotating_1 = ambprod_rotating_light_1;
+  diff_rotating_1 = kd_rotating_1 * diffprod_rotating_light_1;
+  spec_rotating_1 = ks_rotating_1 * specprod_rotating_light_1;
 
-    float kd_rotating = max(dot(LRN,NN), 0.0);
-    float ks_rotating = pow(max(dot(NN,HR),0.0), shine_rotating_light);
-    amb_rotating = ambprod_rotating_light;
-    diff_rotating = kd_rotating * diffprod_rotating_light;
-    spec_rotating = ks_rotating * specprod_rotating_light;
-
-    // Static light
-
-    float kd_static = max(dot(LSN,NN), 0.0);
-    float ks_static = pow(max(dot(NN,HS),0.0), shine_static_light);
-    amb_static = ambprod_static_light;
-    diff_static = kd_static * diffprod_static_light;
-    spec_static = ks_static * specprod_static_light;
-  } else {
-    // Rotating light
-
-    float kd_rotating = max(dot(LRN,NN), 0.0);
-    float ks_rotating = pow(max(dot(NN,HR),0.0), shine_rotating_light);
-    amb_rotating = ambprod_rotating_light;
-    diff_rotating = kd_rotating * diffprod_rotating_light;
-    spec_rotating = ks_rotating * specprod_rotating_light;
-
-    // Static light
-
-    float kd_static = max(dot(LSN,NN), 0.0);
-    float ks_static = pow(max(dot(NN,HS),0.0), shine_static_light);
-    amb_static = ambprod_static_light;
-    diff_static = kd_static * diffprod_static_light;
-    spec_static = ks_static * specprod_static_light;
-  }
+  // Static light
+  float kd_rotating_2 = max(dot(LRN_2,NN), 0.0);
+  float ks_rotating_2 = pow(max(dot(NN,HS),0.0), shine_rotating_light_2);
+  amb_rotating_2 = ambprod_rotating_light_2;
+  diff_rotating_2 = kd_rotating_2 * diffprod_rotating_light_2;
+  spec_rotating_2 = ks_rotating_2 * specprod_rotating_light_2;
 
   // Draw correct texture
   vec3 texture;
@@ -119,8 +83,8 @@ void main(void)
   } else {  // Error
     texture = vec3(1.0, 0, 0);
   }
-  vec3 rotating_lighting = (texture * amb_rotating.rgb) + (texture * diff_rotating.rgb) + (texture * spec_rotating.rgb);
-  vec3 static_lighting = (texture * amb_static.rgb) + (texture * diff_static.rgb) + (texture * spec_static.rgb);
+  vec3 rotating_lighting = (texture * amb_rotating_1.rgb) + (texture * diff_rotating_1.rgb) + (texture * spec_rotating_1.rgb);
+  vec3 static_lighting = (texture * amb_rotating_2.rgb) + (texture * diff_rotating_2.rgb) + (texture * spec_rotating_2.rgb);
   out_col = vec4(
                   clamp(static_lighting.r + rotating_lighting.r, 0, 1),
                   clamp(static_lighting.g + rotating_lighting.g, 0, 1),

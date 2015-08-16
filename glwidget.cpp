@@ -36,16 +36,10 @@ m_vertex_buffer_(QOpenGLBuffer::VertexBuffer) {
 }
 
 void GLWidget::initializeGL() {
-  // Resolve OpenGL functions
   glewExperimental = true;
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_ALPHA_TEST);
-    /*
-  glDepthFunc(GL_LESS);
 
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  */
   GLenum GlewInitResult = glewInit();
   if (GlewInitResult != GLEW_OK) {
     const GLubyte* errorStr = glewGetErrorString(GlewInitResult);
@@ -78,41 +72,26 @@ void GLWidget::initializeGL() {
     glBindVertexArray(VAO);
 
     qDebug() << "Load obj";
+    model_ = mcgbri004::Model();
     std::string texture_1_name;
     std::string texture_2_name;
     std::string normal_map_name;
     if (filename_ == "" || filename_ == "Cube_KEYPRESS") {
-      loadObjImage(CUBE_OBJ);
+      model_obj_ = model_.loadObjImage(CUBE_OBJ);
       setNormalMapping(true);
       texture_1_name = CUBE_TEXTURE;
       texture_2_name = F16T_texture;
       normal_map_name = CUBE_NORMAL;
     } else if (filename_ == "F16_KEYPRESS") {
       setNormalMapping(false);
-      loadObjImage(F16);
+      model_obj_ = model_.loadObjImage(F16);
       texture_1_name = F16S_texture;
       texture_2_name = F16T_texture;
       normal_map_name = F16_normal_map;
     } else {
-      loadObjImage(GLWidget::filename_);
+      model_obj_ = model_.loadObjImage(GLWidget::filename_);
     }
-    qDebug() << "Obj load complete";
     model_transform_ = std::unique_ptr<mcgbri004::Model>(new mcgbri004::Model());
-
-    // If bunny fails to load, load a placeholder cube
-    if (model_.numTriangles == 0) {
-      qDebug() << "The bunny failed to load, loading a placeholder cube instead.";
-      model_ = GLWidget::ObjModel();
-      model_.numTriangles = 1;
-      model_.normals =  std::unique_ptr<glm::vec3[]>(new glm::vec3[model_.numTriangles * 3]);
-      model_.vertices = std::unique_ptr<glm::vec4[]>(new glm::vec4[model_.numTriangles*3]);
-      model_.vertices[0] = glm::vec4(-1.0f, -1.0f, 0.0f, 1.0f);
-      model_.vertices[1] = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
-      model_.vertices[2] = glm::vec4(1.0f, -1.0f, 0.0f, 1.0f);
-      model_.normals[0] = glm::vec3(0.0f, 0.0f, 1.0f);
-      model_.normals[1] = glm::vec3(0.0f, 0.0f, 1.0f);
-      model_.normals[2] = glm::vec3(0.0f, 0.0f, 1.0f);
-    }
 
     // projection_ matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit to 100 units
     projection_ = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
@@ -129,7 +108,7 @@ void GLWidget::initializeGL() {
       qWarning() << "Could not bind vertex buffer to the context";
       return;
     }
-    m_vertex_buffer_.allocate(model_.vertices.get(), model_.numTriangles * 3 * sizeof(glm::vec4));
+    m_vertex_buffer_.allocate(model_obj_.vertices.get(), model_obj_.number_of_triangles * 3 * sizeof(glm::vec4));
 
     qDebug() << "Attempting vertex shader load from " << VERT_SHADER;
     qDebug() << "Attempting fragment shader load from " << FRAG_SHADER;
@@ -155,7 +134,7 @@ void GLWidget::initializeGL() {
       qWarning() << "Could not bind normal buffer to the context";
       return;
     }
-    m_normal_buffer_.allocate(model_.normals.get(), model_.numTriangles * 3 * sizeof(glm::vec3));
+    m_normal_buffer_.allocate(model_obj_.normals.get(), model_obj_.number_of_triangles * 3 * sizeof(glm::vec3));
     m_shader_.bind();
     m_shader_.enableAttributeArray("normal");
     m_shader_.setAttributeBuffer("normal", GL_FLOAT, 0, 3);
@@ -167,8 +146,7 @@ void GLWidget::initializeGL() {
       qWarning() << "Could not bind uv buffer to the context";
       return;
     }
-    qDebug() << "UV's:" << model_.uvs[0][0];
-    m_uv_buffer_.allocate(model_.uvs.get(), model_.numTriangles * 3 * sizeof(glm::vec2));
+    m_uv_buffer_.allocate(model_obj_.uvs.get(), model_obj_.number_of_triangles * 3 * sizeof(glm::vec2));
     m_shader_.bind();
     m_shader_.enableAttributeArray("uv");
     m_shader_.setAttributeBuffer("uv", GL_FLOAT, 0, 2);
@@ -180,7 +158,7 @@ void GLWidget::initializeGL() {
       qWarning() << "Could not bind texture id to the context";
       return;
     }
-    m_texture_id_buffer_.allocate(model_.texture_id.get(), model_.numTriangles * 3 * sizeof(int));
+    m_texture_id_buffer_.allocate(model_obj_.texture_id.get(), model_obj_.number_of_triangles * 3 * sizeof(int));
     m_shader_.bind();
     m_shader_.enableAttributeArray("sampler_index");
     m_shader_.setAttributeBuffer("sampler_index", GL_FLOAT, 0, 1);
@@ -192,7 +170,7 @@ void GLWidget::initializeGL() {
       qWarning() << "Could not bind normal buffer to the context";
       return;
     }
-    m_tangent_buffer_.allocate(model_.tangents.get(), model_.numTriangles * 3 * sizeof(glm::vec3));
+    m_tangent_buffer_.allocate(model_obj_.tangents.get(), model_obj_.number_of_triangles * 3 * sizeof(glm::vec3));
     m_shader_.bind();
     m_shader_.enableAttributeArray("tangent");
     m_shader_.setAttributeBuffer("tangent", GL_FLOAT, 0, 3);
@@ -204,7 +182,7 @@ void GLWidget::initializeGL() {
       qWarning() << "Could not bind normal buffer to the context";
       return;
     }
-    m_bitangent_buffer_.allocate(model_.bitangents.get(), model_.numTriangles * 3 * sizeof(glm::vec3));
+    m_bitangent_buffer_.allocate(model_obj_.bitangents.get(), model_obj_.number_of_triangles * 3 * sizeof(glm::vec3));
     m_shader_.bind();
     m_shader_.enableAttributeArray("bitangent");
     m_shader_.setAttributeBuffer("bitangent", GL_FLOAT, 0, 3);
@@ -248,191 +226,10 @@ void GLWidget::initializeGL() {
     repaint();
   }
 
-  bool GLWidget::loadObjImage(const std::string & file_name) {
-    std::vector< unsigned int > vertex_indices, uv_indices, normal_indices, texture_indices;
-    std::vector< glm::vec3 > temp_vertices;
-    std::vector< glm::vec2 > temp_uvs;
-    std::vector< glm::vec3 > temp_normals;
-    std::cout << file_name << std::endl;
-    unsigned int texture_index = 0;
-    unsigned int texture_index_count = 0;
-    std::unordered_map<std::string, int> texture_map;
-    std::ifstream file_stream(file_name);
-    if (file_stream.fail()) {
-      qWarning() << "An error occurred accessing the file does the file exist?";
-      // return false;
-    }
-    std::string line;
-    while (getline(file_stream, line)) {
-      if (line.substr(0, 2) == "v ") {
-        line = line.substr(2);
-        std::stringstream ss(line);
-        float x, y, z;
-        ss >> x;
-        ss >> y;
-        ss >> z;
-        temp_vertices.push_back(glm::vec3(x, y, z));
-      }
-      else if (line.substr(0, 3) == "vt ") {
-        line = line.substr(3);
-        std::stringstream ss(line);
-        float x, y;
-        ss >> x;
-        ss >> y;
-        temp_uvs.push_back(glm::vec2(x, y));
-      } else if (line.substr(0, 3) == "vn ") {
-        line = line.substr(2);
-        std::stringstream ss(line);
-        float x, y, z;
-        ss >> x;
-        ss >> y;
-        ss >> z;
-        temp_normals.push_back(glm::vec3(x, y, z));
-      } else if (line.substr(0, 2) == "f ") {
-        line = line.substr(2);
-        std::istringstream vertex_set(line);
-        std::string vertex_values;
-        unsigned int vertex_index[3], uv_index[3], normal_index[3];
-        for (int i = 0; i < 3; ++i) {
-          texture_indices.push_back(texture_index);
-          vertex_set >> vertex_values;
-          unsigned int count = 0;
-          int index = vertex_values.find("/");
-          while (index != std::string::npos || vertex_values != "") {
-            std::string first_value;
-            if (index != std::string::npos) {
-              first_value = vertex_values.substr(0, index);
-              vertex_values.erase(0, index + 1);
-            } else {
-              first_value = vertex_values;
-              vertex_values = "";
-            }
-            if (first_value != "") {
-              std::stringstream ss(first_value);
-              unsigned int value;
-
-              ss >> value;
-              if (count == 0) {
-                vertex_indices.push_back(value);
-              } else if (count == 1) {
-                uv_indices.push_back(value);
-              } else if (count == 2) {
-                normal_indices.push_back(value);
-              }
-            }
-            ++count;
-            index = vertex_values.find("/");
-          }
-        }
-      } else if (line.length() > 7 && line.substr(0, 7) == "usemtl ") {
-        line = line.substr(7);
-
-        std::unordered_map<std::string, int>::const_iterator got = texture_map.find(line);
-        if (got == texture_map.end()) {
-          ++texture_index_count;
-          texture_map.insert(std::pair<std::string, int>(line, texture_index_count));
-          qDebug() << texture_index_count << "First";
-          texture_index = texture_index_count;
-        } else {
-          texture_index = got->second;
-        }
-      } else {
-        // Not yet supported
-      }
-    }
-    GLWidget::ObjModel model;  // Change this -- this is just an inital pass
-    model.numTriangles = vertex_indices.size() / 3;
-    qDebug() << "Number of Triangles" << model.numTriangles;
-    model.normals = std::unique_ptr<glm::vec3[]>(new glm::vec3[model.numTriangles * 3]);
-    model.vertices = std::unique_ptr<glm::vec4[]>(new glm::vec4[model.numTriangles * 3]);
-    model.uvs = std::unique_ptr<glm::vec2[]>(new glm::vec2[model.numTriangles * 3]);
-    model.texture_id = std::unique_ptr<int[]>(new int[model.numTriangles * 3]);
-    model.tangents = std::unique_ptr<glm::vec3[]>(new glm::vec3[model.numTriangles * 3]);
-    model.bitangents = std::unique_ptr<glm::vec3[]>(new glm::vec3[model.numTriangles * 3]);
-    for (unsigned int i = 0; i < vertex_indices.size(); ++i) {
-      model.vertices[i] = glm::vec4(temp_vertices[vertex_indices[i] - 1], 1.0f);
-      if (i < uv_indices.size()) {
-        model.uvs[i] = temp_uvs[uv_indices[i] - 1];
-      }      model.normals[i] = temp_normals[normal_indices[i] - 1];
-      model.texture_id[i] = texture_indices[i];
-    }
-    setTangentVectors(model);
-    model_ = std::move(model);
-    qDebug() << "Complete loading obj";
-    return true;
-  }
-
-  void GLWidget::setTangentVectors(ObjModel & model) {
-    /*
-    for(unsigned int i = 0; i < model.numTriangles * 3; i += 3) {
-      glm::vec4 & v0 = model.vertices[i];
-      glm::vec4 & v1 = model.vertices[i + 1];
-      glm::vec4 & v2 = model.vertices[i + 2];
-
-      glm::vec2 & u0 = model.uvs[i];
-      glm::vec2 & u1 = model.uvs[i + 1];
-      glm::vec2 & u2 = model.uvs[i + 2];
-
-      glm::vec3 e1 = glm::vec3(v1) - glm::vec3(v0);
-      glm::vec3 e2 = glm::vec3(v2) - glm::vec3(v0);
-
-      float deltaU1 = u1.x - u0.x;
-      float deltaV1 = u1.y - u0.y;
-      float deltaU2 = u2.x - u0.x;
-      float deltaV2 = u2.y - u0.y;
-
-      float f = 1.0f / (deltaU1 * deltaV2 - deltaU2 * deltaV1);
-
-      glm::vec3 tangent, bitangent;
-      tangent.x = f * (deltaV2 * e1.x - deltaV1 * e2.x);
-      tangent.x = f * (deltaV2 * e1.y - deltaV1 * e2.y);
-      tangent.x = f * (deltaV2 * e1.z - deltaV1 * e2.z);
-
-      bitangent.x = f * (deltaU2 * e1.x - deltaU1 * e2.x);
-      bitangent.x = f * (deltaU2 * e1.y - deltaU1 * e2.y);
-      bitangent.x = f * (deltaU2 * e1.z - deltaU1 * e2.z);
-
-      model.tangents[i] = tangent;
-      model.tangents[i + 1] = tangent;
-      model.tangents[i + 2] = tangent;
-
-      model.bitangents[i] = bitangent;
-      model.bitangents[i + 1] = bitangent;
-      model.bitangents[i + 2] = bitangent;
-    }
-
-    for(unsigned int i = 0; i < model.numTriangles * 3; ++i) {
-      model.tangents[i] = glm::normalize(model.tangents[i]);
-    }
-    */
-    for (unsigned int i = 0; i < model.numTriangles * 3; i += 3) {
-      glm::vec3 delta_pos_1 = glm::vec3(model.vertices[i + 1].x, model.vertices[i + 1].y, model.vertices[i + 1].z) - glm::vec3(model.vertices[i].x, model.vertices[i].y, model.vertices[i].z);
-      glm::vec3 delta_pos_2 = glm::vec3(model.vertices[i + 2].x, model.vertices[i + 2].y, model.vertices[i + 2].z) - glm::vec3(model.vertices[i].x, model.vertices[i].y, model.vertices[i].z);
-      glm::vec2 delta_uv_1 = model.uvs[i + 1] - model.uvs[i];
-      glm::vec2 delta_uv_2 = model.uvs[i + 2] - model.uvs[i];
-      float r = 1.0f / (delta_uv_1.x * delta_uv_2.y - delta_uv_1.y * delta_uv_2.x);
-      glm::vec3 tangent = (delta_pos_1 * delta_uv_2.y - delta_pos_2 * delta_uv_1.y) * r;
-      glm::vec3 bitangent = (delta_pos_2 * delta_uv_1.x - delta_pos_1 * delta_uv_2.x) * r;
-      for (unsigned int g = 0; g < 3; ++g) {
-        model.tangents[i + g] = tangent;
-        model.bitangents[i + g] = bitangent;
-      }
-    }
-    for (unsigned int i = 0; i < model.numTriangles * 3; ++i) {
-      glm::vec3 & normal = model.normals[i];
-      glm::vec3 & tangent = model.tangents[i];
-      glm::vec3 & bitangent = model.bitangents[i];
-      tangent = glm::normalize(tangent - normal * glm::dot(normal, tangent));
-      if (glm::dot(glm::cross(normal, tangent), bitangent) < 0.0f) {
-        tangent = tangent * -1.0f;
-      }
-    }
-  }
-
+  // Set the viewport to window dimensions
   void GLWidget::resizeGL(int w, int h) {
     window_width_ = w;
     window_height_ = h;
-    // Set the viewport to window dimensions
     glViewport(0, 0, w, qMax(h, 1));
   }
 
@@ -469,19 +266,19 @@ void GLWidget::initializeGL() {
     // Rotating light
     float radian_rotation = glm::radians(light_rotation_);
     glm::vec3 rotated_light_1 = glm::mat3x3(glm::vec3(glm::cos(radian_rotation), 0, glm::sin(radian_rotation)), glm::vec3(0, 1, 0), glm::vec3(-glm::sin(radian_rotation), 0, glm::cos(radian_rotation))) * rotating_light_1_start_position_;
-    glUniform3f(glGetUniformLocation(m_shader_.programId(), "rotating_light"), rotated_light_1[0], rotated_light_1[1], rotated_light_1[2]);
-    glUniform4f(glGetUniformLocation(m_shader_.programId(), "ambprod_rotating_light"), ambprod_rotating_light_[0], ambprod_rotating_light_[1], ambprod_rotating_light_[2], ambprod_rotating_light_[3]);
-    glUniform4f(glGetUniformLocation(m_shader_.programId(), "diffprod_rotating_light"), diffprod_rotating_light_[0], diffprod_rotating_light_[1], diffprod_rotating_light_[2], diffprod_rotating_light_[3]);
-    glUniform4f(glGetUniformLocation(m_shader_.programId(), "specprod_rotating_light"), specprod_rotating_light_[0], specprod_rotating_light_[1], specprod_rotating_light_[2], specprod_rotating_light_[3]);
-    glUniform1f(glGetUniformLocation(m_shader_.programId(), "shine_rotating_light"), 500.0);
+    glUniform3f(glGetUniformLocation(m_shader_.programId(), "rotating_light_1"), rotated_light_1[0], rotated_light_1[1], rotated_light_1[2]);
+    glUniform4f(glGetUniformLocation(m_shader_.programId(), "ambprod_rotating_light_1"), ambprod_rotating_light_1_[0], ambprod_rotating_light_1_[1], ambprod_rotating_light_1_[2], ambprod_rotating_light_1_[3]);
+    glUniform4f(glGetUniformLocation(m_shader_.programId(), "diffprod_rotating_light_1"), diffprod_rotating_light_1_[0], diffprod_rotating_light_1_[1], diffprod_rotating_light_1_[2], diffprod_rotating_light_1_[3]);
+    glUniform4f(glGetUniformLocation(m_shader_.programId(), "specprod_rotating_light_1"), specprod_rotating_light_1_[0], specprod_rotating_light_1_[1], specprod_rotating_light_1_[2], specprod_rotating_light_1_[3]);
+    glUniform1f(glGetUniformLocation(m_shader_.programId(), "shine_rotating_light_1"), shine_rotating_light_1_);
 
     // Static light
     glm::vec3 rotated_light_2 = glm::mat3x3(glm::vec3(1, 0, 0), glm::vec3(0, glm::cos(radian_rotation), -glm::sin(radian_rotation)), glm::vec3(0, glm::sin(radian_rotation), glm::cos(radian_rotation))) * rotating_light_2_start_position_;
-    glUniform3f(glGetUniformLocation(m_shader_.programId(), "static_light"), rotated_light_2[0], rotated_light_2[1], rotated_light_2[2]);
-    glUniform4f(glGetUniformLocation(m_shader_.programId(), "ambprod_static_light"), ambprod_static_light_[0], ambprod_static_light_[1], ambprod_static_light_[2], ambprod_static_light_[3]);
-    glUniform4f(glGetUniformLocation(m_shader_.programId(), "diffprod_static_light"), diffprod_static_light_[0], diffprod_static_light_[1], diffprod_static_light_[2], diffprod_static_light_[3]);
-    glUniform4f(glGetUniformLocation(m_shader_.programId(), "specprod_static_light"), specprod_static_light_[0], specprod_static_light_[1], specprod_static_light_[2], specprod_static_light_[3]);
-    glUniform1f(glGetUniformLocation(m_shader_.programId(), "shine_static_light"), 500.0f);
+    glUniform3f(glGetUniformLocation(m_shader_.programId(), "rotating_light_2"), rotated_light_2[0], rotated_light_2[1], rotated_light_2[2]);
+    glUniform4f(glGetUniformLocation(m_shader_.programId(), "ambprod_rotating_light_2"), ambprod_rotating_light_2_[0], ambprod_rotating_light_2_[1], ambprod_rotating_light_2_[2], ambprod_rotating_light_2_[3]);
+    glUniform4f(glGetUniformLocation(m_shader_.programId(), "diffprod_rotating_light_2"), diffprod_rotating_light_2_[0], diffprod_rotating_light_2_[1], diffprod_rotating_light_2_[2], diffprod_rotating_light_2_[3]);
+    glUniform4f(glGetUniformLocation(m_shader_.programId(), "specprod_rotating_light_2"), specprod_rotating_light_2_[0], specprod_rotating_light_2_[1], specprod_rotating_light_2_[2], specprod_rotating_light_2_[3]);
+    glUniform1f(glGetUniformLocation(m_shader_.programId(), "shine_rotating_light_2"), shine_rotating_light_2_);
 
     // Texture samplers
     GLuint texture_id_16s  = glGetUniformLocation(m_shader_.programId(), "texture_sampler_f16s");
@@ -498,7 +295,7 @@ void GLWidget::initializeGL() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Draw triangles
-    glDrawArrays(GL_TRIANGLES, 0, model_.numTriangles * 3);
+    glDrawArrays(GL_TRIANGLES, 0, model_obj_.number_of_triangles * 3);
   }
 
   QGLFormat GLWidget::desiredFormat() {
@@ -587,9 +384,6 @@ void GLWidget::initializeGL() {
         }
       } else if (mode_ == 1) {
         scaleBy(-change);
-      } else if (mode_ == 2) {
-        // translateZ += change * translateSpeed;  // Disabled
-        // repaint();
       }
     }
   }
@@ -632,17 +426,16 @@ void GLWidget::initializeGL() {
       setNormalMapping(!normal_mapping_active_);
       break;
 
-    case Qt::Key_1:
-    setFileName("Cube_KEYPRESS");
-    reallocate_buffers();
-    break;
+      case Qt::Key_1:
+      setFileName("Cube_KEYPRESS");
+      reallocate_buffers();
+      break;
 
-    case Qt::Key_2:
-    setFileName("F16_KEYPRESS");
-    reallocate_buffers();
-    break;
+      case Qt::Key_2:
+      setFileName("F16_KEYPRESS");
+      reallocate_buffers();
+      break;
 
-      // Color from assignment 2 removed
       case Qt::Key_Escape:
       QCoreApplication::instance()->quit();
       break;
@@ -675,38 +468,32 @@ void GLWidget::initializeGL() {
     filename_ = name;
   }
 
-  // Currently using an existing implementation to save time
   GLuint GLWidget::loadBmpImage(const std::string & imagepath) {
-    qDebug() << "reading image" << imagepath.c_str();
-
-    // model_ read from the header of the BMP file
     unsigned char header[54];
     unsigned int model_Pos;
     unsigned int imageSize;
     unsigned int width, height;
-    // Actual RGB model_
-    unsigned char * model_;
 
-    // Open the file
+    unsigned char * model_obj_;
+
     FILE * file = fopen(imagepath.c_str(), "rb");
     if (!file) {
       qDebug() << imagepath.c_str() << "could not be opened.";
       getchar();
       return 0;
     }
-    // Read the header, i.e. the 54 first bytes
+    // Read header
     // If less than 54 bytes are read, problem
     if (fread(header, 1, 54, file) != 54) {
       qDebug() << imagepath.c_str() <<"not a correct BMP file";
       return 0;
     }
-    // A BMP files always begins with "BM"
     if (header[0] != 'B' || header[1] != 'M') {
       qDebug() << imagepath.c_str() <<"not a correct BMP file";
       return 0;
     }
-    // Make sure this is a 24bpp file
-    if (*reinterpret_cast<int*>(&header[0x1E]) != 0) {
+
+    if (*reinterpret_cast<int*>(&header[0x1E]) != 0) {  // check it is a 24bpp file
       qDebug() << imagepath.c_str() <<"not a correct BMP file";
       return 0;
     }
@@ -720,36 +507,20 @@ void GLWidget::initializeGL() {
     width      = *reinterpret_cast<int*>(&header[0x12]);
     height     = *reinterpret_cast<int*>(&header[0x16]);
 
-    // Some BMP files are misformatted, guess missing information
     if (imageSize == 0) {
-      imageSize = width * height * 3;  // 3 : one byte for each Red, Green and Blue component
+      imageSize = width * height * 3;  // one byte for each red, green and blue component
     }
     if (model_Pos == 0) {
-      model_Pos = 54;                    // The BMP header is done that way
+      model_Pos = 54;
     }
-
-    // Create a buffer
-    model_ = new unsigned char[imageSize];
-
-    // Read the actual model_ from the file into the buffer
-    fread(model_, 1, imageSize, file);
-
-    // Everything is in memory now, the file wan be closed
+    model_obj_ = new unsigned char[imageSize];
+    fread(model_obj_, 1, imageSize, file);
     fclose(file);
-
-    // Create one OpenGL texture
     GLuint textureID;
     glGenTextures(1, &textureID);
-
-    // "Bind" the newly created texture : all future texture functions will modify this texture
     glBindTexture(GL_TEXTURE_2D, textureID);
-
-    // Give the image to OpenGL
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, model_);
-
-    // OpenGL has now copied the model_. Free our own version
-    delete [] model_;
-
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, model_obj_);
+    delete [] model_obj_;
     glGenerateMipmap(GL_TEXTURE_2D);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -757,7 +528,6 @@ void GLWidget::initializeGL() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     // glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);  // Not part of core openGL, disabled for now
 
-    // Return the ID of the texture we just created
     return textureID;
   }
 
@@ -776,97 +546,4 @@ void GLWidget::initializeGL() {
     } else {
       qDebug() << "Normal mapping turned off.";
     }
-  }
-
-  // Not used in Assigment-4
-  void GLWidget::loadSTLFile(const std::string & file_name) {
-    std::ifstream file_stream;
-    file_stream.open(file_name, std::ios_base::in | std::ios::binary);
-    if (file_stream.fail()) {
-      qWarning() << "An error occurred accessing the file does the file exist?";
-      file_stream.close();
-      model_ = std::move(GLWidget::ObjModel());
-    }
-
-    // Ignore header
-    file_stream.ignore(80, EOF);
-
-    // Number of triangles
-    unsigned int numTriangles;
-    file_stream.read(reinterpret_cast<char *>(&numTriangles), 4);
-    if (file_stream.fail()) {
-      qWarning() << "An error occurred reading from file";
-      file_stream.close();
-      model_ = std::move(GLWidget::ObjModel());
-      return;
-    }
-
-    GLWidget::ObjModel model;
-    model.numTriangles = numTriangles;
-    qDebug() << "Number of triangles:" << numTriangles;
-    model.normals = std::unique_ptr<glm::vec3[]>(new glm::vec3[numTriangles * 3]);
-    model.vertices = std::unique_ptr<glm::vec4[]>(new glm::vec4[numTriangles * 3]);
-    unsigned int triCounter = 0;
-    for (unsigned int i = 0; i < numTriangles; ++i) {
-      float normX, normY, normZ, x, y, z;
-      file_stream.read(reinterpret_cast<char *>(&normX), 4);
-      file_stream.read(reinterpret_cast<char *>(&normY), 4);
-      file_stream.read(reinterpret_cast<char *>(&normZ), 4);
-      file_stream.read(reinterpret_cast<char *>(&x), 4);
-      file_stream.read(reinterpret_cast<char *>(&y), 4);
-      file_stream.read(reinterpret_cast<char *>(&z), 4);
-      if (file_stream.fail()) {
-        qWarning() << "An error occurred reading from file";
-        file_stream.close();
-        model_ = std::move(GLWidget::ObjModel());
-        m_vertex_buffer_.allocate( model_.vertices.get(), model_.numTriangles * 3 * sizeof(glm::vec4) );
-        return;
-      }
-
-      // Normal Vector
-      model.normals[triCounter] = glm::vec3(normX, normY, normZ);
-      model.normals[triCounter+1] = glm::vec3(normX, normY, normZ);
-      model.normals[triCounter+2] = glm::vec3(normX, normY, normZ);
-      // Vertex 1
-      model.vertices[triCounter] = glm::vec4(x, y, z, 1.0f);
-
-      // Vertex 2
-      x = 0.0f;
-      y = 0.0f;
-      z = 0.0f;
-      file_stream.read(reinterpret_cast<char *>(&x), 4);
-      file_stream.read(reinterpret_cast<char *>(&y), 4);
-      file_stream.read(reinterpret_cast<char *>(&z), 4);
-      if (file_stream.fail()) {
-        qWarning() << "An error occurred reading from file";
-        file_stream.close();
-        model_ = std::move(GLWidget::ObjModel());
-        m_vertex_buffer_.allocate( model_.vertices.get(), model_.numTriangles * 3 * sizeof(glm::vec4) );
-        return;
-      }
-      model.vertices[triCounter+1] = glm::vec4(x, y, z, 1.0f);
-
-      // Vertex 3
-      x = 0.0f;
-      y = 0.0f;
-      z = 0.0f;
-      file_stream.read(reinterpret_cast<char *>(&x), 4);
-      file_stream.read(reinterpret_cast<char *>(&y), 4);
-      file_stream.read(reinterpret_cast<char *>(&z), 4);
-      if (file_stream.fail()) {
-        qWarning() << "An error occurred reading from file";
-        file_stream.close();
-        model_ = std::move(GLWidget::ObjModel());
-        m_vertex_buffer_.allocate( model_.vertices.get(), model_.numTriangles * 3 * sizeof(glm::vec4) );
-        return;
-      }
-      model.vertices[triCounter+2] = glm::vec4(x, y, z, 1.0f);
-
-      // Attribute byte count
-      file_stream.ignore(2, EOF);
-
-      triCounter+=3;
-    }
-    model_ = std::move(model);
-    return;
   }
