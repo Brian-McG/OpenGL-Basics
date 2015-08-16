@@ -476,13 +476,15 @@ void GLWidget::initializeGL() {
     filename_ = name;
   }
 
+  // Heavily based off the implementation described here:
+  // http://www.opengl-tutorial.org/beginners-tutorials/tutorial-5-a-textured-cube/#Loading__BMP_images_yourself
   GLuint GLWidget::loadBmpImage(const std::string & imagepath) {
     unsigned char header[54];
-    unsigned int model_Pos;
-    unsigned int imageSize;
+    unsigned int model_position;
+    unsigned int image_size;
     unsigned int width, height;
 
-    unsigned char * model_obj_;
+    unsigned char * model_obj;
 
     FILE * file = fopen(imagepath.c_str(), "rb");
     if (!file) {
@@ -509,26 +511,25 @@ void GLWidget::initializeGL() {
       qDebug() << imagepath.c_str() <<"not a correct BMP file";
       return 0;
     }
-    // Read the information about the image
-    model_Pos    = *reinterpret_cast<int*>(&header[0x0A]);
-    imageSize  = *reinterpret_cast<int*>(&header[0x22]);
+    model_position    = *reinterpret_cast<int*>(&header[0x0A]);
+    image_size  = *reinterpret_cast<int*>(&header[0x22]);
     width      = *reinterpret_cast<int*>(&header[0x12]);
     height     = *reinterpret_cast<int*>(&header[0x16]);
 
-    if (imageSize == 0) {
-      imageSize = width * height * 3;  // one byte for each red, green and blue component
+    if (image_size == 0) {
+      image_size = width * height * 3;  // one byte for each red, green and blue component
     }
-    if (model_Pos == 0) {
-      model_Pos = 54;
+    if (model_position == 0) {
+      model_position = 54;
     }
-    model_obj_ = new unsigned char[imageSize];
-    fread(model_obj_, 1, imageSize, file);
+    model_obj = new unsigned char[image_size];
+    fread(model_obj, 1, image_size, file);
     fclose(file);
     GLuint textureID;
     glGenTextures(1, &textureID);
     glBindTexture(GL_TEXTURE_2D, textureID);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, model_obj_);
-    delete [] model_obj_;
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, model_obj);
+    delete [] model_obj;
     glGenerateMipmap(GL_TEXTURE_2D);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
