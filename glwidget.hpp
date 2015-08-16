@@ -45,6 +45,9 @@ class GLWidget : public QGLWidget {
   virtual void keyPressEvent(QKeyEvent* e);
   virtual void wheelEvent(QWheelEvent* e);
 
+ private slots:
+  void timerTick();
+
  private:
   void rotX(const int & change);
   void rotY(const int & change);
@@ -63,9 +66,9 @@ class GLWidget : public QGLWidget {
   int last_cursor_y_;
   float light_rotation_ = 0.0f;
   QTimer redraw_timer_;
-  glm::vec3 light_position_;
   char mode_ = -1;
   char rotation_mode_ = -1;
+  bool normal_mapping_active_ = true;
   ObjModel model_;
   std::unique_ptr<mcgbri004::Model> model_transform_;
   std::string filename_;
@@ -79,5 +82,29 @@ class GLWidget : public QGLWidget {
   QOpenGLBuffer m_texture_id_buffer_;
   QOpenGLBuffer m_tangent_buffer_;
   QOpenGLBuffer m_bitangent_buffer_;
+
+/*
+  //lights
+  // Rotating light
+  glm::vec3 rotating_light_1_start_position_ = glm::vec3(0.0f, 0.0f, -10.0f);
+  glm::vec4 ambprod_rotating_light_ = glm::vec4(0.02f, 0.02f, 0.02f, 1.0f);
+  glm::vec4 diffprod_rotating_light_ = glm::vec4(0.3f, 0.1977f, 0.0f, 1.0f);
+  glm::vec4 specprod_rotating_light_ = glm::vec4(1.0f, 0.659f, 0.0f, 1.0f);
+  // Static light
+  glm::vec3 rotating_light_2_start_position_ = glm::vec3(0.0f, 0.0f, -10.0f);
+  glm::vec4 ambprod_static_light_ = glm::vec4(0.02f, 0.02f, 0.02f, 1.0f);
+  glm::vec4 diffprod_static_light_ = glm::vec4(0.0f, 0.3f, 0.201f, 1.0f);
+  glm::vec4 specprod_static_light_ = glm::vec4(0.0f, 1.0f, 0.67f, 1.0f);
+  */
+
+  glm::vec3 rotating_light_1_start_position_ = glm::vec3(0.0f, 0.0f, 10.0f);
+  glm::vec4 ambprod_rotating_light_ = glm::vec4(0.01f, 0.01f, 0.01f, 1.0f);
+  glm::vec4 diffprod_rotating_light_ = glm::vec4(0.4f, 0.0f, 0.0f, 1.0f);
+  glm::vec4 specprod_rotating_light_ = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+  // Static light
+  glm::vec3 rotating_light_2_start_position_ = glm::vec3(0.0f, 0.0f, 10.0f);
+  glm::vec4 ambprod_static_light_ = glm::vec4(0.01f, 0.01f, 0.01f, 1.0f);
+  glm::vec4 diffprod_static_light_ = glm::vec4(0.0f, 0.4f, 0.0f, 1.0f);
+  glm::vec4 specprod_static_light_ = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
 };
 #endif  // GLWIDGET_H_

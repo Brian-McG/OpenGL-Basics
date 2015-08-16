@@ -19,9 +19,16 @@
 
 #define VERT_SHADER ":/simple.vert"
 #define FRAG_SHADER ":/simple.frag"
-#define BUNNY_LOCATION "bunny.stl"
-#define BUNNY_LOCATION_OBJ "bunny.obj"
-#define F16 "/home/brian/Downloads/f16/f16.obj"
+#define BUNNY_LOCATION_OBJ "models/Bunny/bunny.obj"
+#define F16 "models/F16/f16.obj"
+#define F16S_texture "models/F16/F16s.bmp"
+#define F16T_texture "models/F16/F16t.bmp"
+#define F16_normal_map "models/F16/normal_map.bmp"
+#define F16_normal_map2 "models/F16/normal_map2.bmp"
+#define F16_normal_map3 "models/F16/bricks_norm.bmp"
+#define CUBE_OBJ "models/Cube/cube.obj"
+#define CUBE_TEXTURE "models/Cube/randomtest.bmp"
+#define CUBE_NORMAL "models/Cube/sampleNormal.bmp"
 
 GLWidget::GLWidget(const QGLFormat& format, QWidget* parent)
 : QGLWidget(format, parent),
@@ -32,9 +39,13 @@ void GLWidget::initializeGL() {
   // Resolve OpenGL functions
   glewExperimental = true;
   glEnable(GL_DEPTH_TEST);
+  glEnable(GL_ALPHA_TEST);
+    /*
   glDepthFunc(GL_LESS);
+
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  */
   GLenum GlewInitResult = glewInit();
   if (GlewInitResult != GLEW_OK) {
     const GLubyte* errorStr = glewGetErrorString(GlewInitResult);
@@ -67,8 +78,19 @@ void GLWidget::initializeGL() {
     glBindVertexArray(VAO);
 
     qDebug() << "Load obj";
-    if (GLWidget::filename_ == "") {
+    std::string texture_1_name;
+    std::string texture_2_name;
+    std::string normal_map_name;
+    if (filename_ == "" || filename_ == "Cube_KEYPRESS") {
+      loadObjImage(CUBE_OBJ);
+      texture_1_name = CUBE_TEXTURE;
+      texture_2_name = F16T_texture;
+      normal_map_name = CUBE_NORMAL;
+    } else if (filename_ == "F16_KEYPRESS") {
       loadObjImage(F16);
+      texture_1_name = F16S_texture;
+      texture_2_name = F16T_texture;
+      normal_map_name = F16_normal_map;
     } else {
       loadObjImage(GLWidget::filename_);
     }
@@ -121,7 +143,6 @@ void GLWidget::initializeGL() {
     }
     // Enable the "vertex" attribute to bind it to our currently bound
     // vertex buffer.
-
     m_shader_.enableAttributeArray("vertex");
     m_shader_.setAttributeBuffer("vertex", GL_FLOAT, 0, 4);
 
@@ -186,30 +207,30 @@ void GLWidget::initializeGL() {
     m_shader_.enableAttributeArray("bitangent");
     m_shader_.setAttributeBuffer("bitangent", GL_FLOAT, 0, 3);
 
-    qDebug() << "Gets to bmp load";
-    texture_0_ = loadBmpImage("/home/brian/Downloads/f16/F16s.bmp");  // Hardcode for now -- Change this
-    texture_1_ = loadBmpImage("/home/brian/Downloads/f16/F16t.bmp");  // Hardcode for now -- Change this
-    normal_map_ = loadBmpImage("/home/brian/Downloads/f16/normal_map.bmp");  // Hardcode for now -- Change this
+    texture_0_ = loadBmpImage(texture_1_name);
+    texture_1_ = loadBmpImage(texture_2_name);
+    normal_map_ = loadBmpImage(normal_map_name);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture_0_);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, texture_1_);
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, normal_map_);
-
     qDebug() << "Texture load complete";
+
     GLuint MatrixID = glGetUniformLocation(m_shader_.programId(), "MVP");
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
 
-    light_position_ = glm::vec3(0, 0, -10);
-
-    connect(&redraw_timer_, SIGNAL(timeout()), this, SLOT(updateGL()));
-    if (format().swapInterval() == -1) {  // V-sync unavailable
-      redraw_timer_.setInterval(17);
-    } else {  // V-sync available
-      redraw_timer_.setInterval(0);
+    // Setup light timer
+    if (!redraw_timer_.isActive()) {
+      connect(&redraw_timer_, SIGNAL(timeout()), this, SLOT(timerTick()));
+      if (format().swapInterval() == -1) {  // V-sync unavailable
+        redraw_timer_.setInterval(17);
+      } else {  // V-sync available
+        redraw_timer_.setInterval(0);
+      }
+      redraw_timer_.start();
     }
-    redraw_timer_.start();
   }
 
   void GLWidget::reallocate_buffers() {
@@ -223,98 +244,6 @@ void GLWidget::initializeGL() {
     mode_ = -1;
     rotation_mode_ = -1;
     repaint();
-  }
-
-  void GLWidget::loadSTLFile(const std::string & file_name) {
-    std::ifstream file_stream;
-    file_stream.open(file_name, std::ios_base::in | std::ios::binary);
-    if (file_stream.fail()) {
-      qWarning() << "An error occurred accessing the file does the file exist?";
-      file_stream.close();
-      model_ = std::move(GLWidget::ObjModel());
-    }
-
-    // Ignore header
-    file_stream.ignore(80, EOF);
-
-    // Number of triangles
-    unsigned int numTriangles;
-    file_stream.read(reinterpret_cast<char *>(&numTriangles), 4);
-    if (file_stream.fail()) {
-      qWarning() << "An error occurred reading from file";
-      file_stream.close();
-      model_ = std::move(GLWidget::ObjModel());
-      return;
-    }
-
-    GLWidget::ObjModel model;
-    model.numTriangles = numTriangles;
-    qDebug() << "Number of triangles:" << numTriangles;
-    model.normals = std::unique_ptr<glm::vec3[]>(new glm::vec3[numTriangles * 3]);
-    model.vertices = std::unique_ptr<glm::vec4[]>(new glm::vec4[numTriangles * 3]);
-    unsigned int triCounter = 0;
-    for (unsigned int i = 0; i < numTriangles; ++i) {
-      float normX, normY, normZ, x, y, z;
-      file_stream.read(reinterpret_cast<char *>(&normX), 4);
-      file_stream.read(reinterpret_cast<char *>(&normY), 4);
-      file_stream.read(reinterpret_cast<char *>(&normZ), 4);
-      file_stream.read(reinterpret_cast<char *>(&x), 4);
-      file_stream.read(reinterpret_cast<char *>(&y), 4);
-      file_stream.read(reinterpret_cast<char *>(&z), 4);
-      if (file_stream.fail()) {
-        qWarning() << "An error occurred reading from file";
-        file_stream.close();
-        model_ = std::move(GLWidget::ObjModel());
-        m_vertex_buffer_.allocate( model_.vertices.get(), model_.numTriangles * 3 * sizeof(glm::vec4) );
-        return;
-      }
-
-      // Normal Vector
-      model.normals[triCounter] = glm::vec3(normX, normY, normZ);
-      model.normals[triCounter+1] = glm::vec3(normX, normY, normZ);
-      model.normals[triCounter+2] = glm::vec3(normX, normY, normZ);
-      // Vertex 1
-      model.vertices[triCounter] = glm::vec4(x, y, z, 1.0f);
-
-      // Vertex 2
-      x = 0.0f;
-      y = 0.0f;
-      z = 0.0f;
-      file_stream.read(reinterpret_cast<char *>(&x), 4);
-      file_stream.read(reinterpret_cast<char *>(&y), 4);
-      file_stream.read(reinterpret_cast<char *>(&z), 4);
-      if (file_stream.fail()) {
-        qWarning() << "An error occurred reading from file";
-        file_stream.close();
-        model_ = std::move(GLWidget::ObjModel());
-        m_vertex_buffer_.allocate( model_.vertices.get(), model_.numTriangles * 3 * sizeof(glm::vec4) );
-        return;
-      }
-      model.vertices[triCounter+1] = glm::vec4(x, y, z, 1.0f);
-
-      // Vertex 3
-      x = 0.0f;
-      y = 0.0f;
-      z = 0.0f;
-      file_stream.read(reinterpret_cast<char *>(&x), 4);
-      file_stream.read(reinterpret_cast<char *>(&y), 4);
-      file_stream.read(reinterpret_cast<char *>(&z), 4);
-      if (file_stream.fail()) {
-        qWarning() << "An error occurred reading from file";
-        file_stream.close();
-        model_ = std::move(GLWidget::ObjModel());
-        m_vertex_buffer_.allocate( model_.vertices.get(), model_.numTriangles * 3 * sizeof(glm::vec4) );
-        return;
-      }
-      model.vertices[triCounter+2] = glm::vec4(x, y, z, 1.0f);
-
-      // Attribute byte count
-      file_stream.ignore(2, EOF);
-
-      triCounter+=3;
-    }
-    model_ = std::move(model);
-    return;
   }
 
   bool GLWidget::loadObjImage(const std::string & file_name) {
@@ -341,8 +270,9 @@ void GLWidget::initializeGL() {
         ss >> y;
         ss >> z;
         temp_vertices.push_back(glm::vec3(x, y, z));
-      } else if (line.substr(0, 3) == "vt ") {
-        line = line.substr(2);
+      }
+      else if (line.substr(0, 3) == "vt ") {
+        line = line.substr(3);
         std::stringstream ss(line);
         float x, y;
         ss >> x;
@@ -417,13 +347,11 @@ void GLWidget::initializeGL() {
     model.texture_id = std::unique_ptr<int[]>(new int[model.numTriangles * 3]);
     model.tangents = std::unique_ptr<glm::vec3[]>(new glm::vec3[model.numTriangles * 3]);
     model.bitangents = std::unique_ptr<glm::vec3[]>(new glm::vec3[model.numTriangles * 3]);
-
     for (unsigned int i = 0; i < vertex_indices.size(); ++i) {
       model.vertices[i] = glm::vec4(temp_vertices[vertex_indices[i] - 1], 1.0f);
       if (i < uv_indices.size()) {
-      model.uvs[i] = temp_uvs[uv_indices[i] - 1];
-      }
-      model.normals[i] = temp_normals[normal_indices[i] - 1];
+        model.uvs[i] = temp_uvs[uv_indices[i] - 1];
+      }      model.normals[i] = temp_normals[normal_indices[i] - 1];
       model.texture_id[i] = texture_indices[i];
     }
     setTangentVectors(model);
@@ -433,6 +361,48 @@ void GLWidget::initializeGL() {
   }
 
   void GLWidget::setTangentVectors(ObjModel & model) {
+    /*
+    for(unsigned int i = 0; i < model.numTriangles * 3; i += 3) {
+      glm::vec4 & v0 = model.vertices[i];
+      glm::vec4 & v1 = model.vertices[i + 1];
+      glm::vec4 & v2 = model.vertices[i + 2];
+
+      glm::vec2 & u0 = model.uvs[i];
+      glm::vec2 & u1 = model.uvs[i + 1];
+      glm::vec2 & u2 = model.uvs[i + 2];
+
+      glm::vec3 e1 = glm::vec3(v1) - glm::vec3(v0);
+      glm::vec3 e2 = glm::vec3(v2) - glm::vec3(v0);
+
+      float deltaU1 = u1.x - u0.x;
+      float deltaV1 = u1.y - u0.y;
+      float deltaU2 = u2.x - u0.x;
+      float deltaV2 = u2.y - u0.y;
+
+      float f = 1.0f / (deltaU1 * deltaV2 - deltaU2 * deltaV1);
+
+      glm::vec3 tangent, bitangent;
+      tangent.x = f * (deltaV2 * e1.x - deltaV1 * e2.x);
+      tangent.x = f * (deltaV2 * e1.y - deltaV1 * e2.y);
+      tangent.x = f * (deltaV2 * e1.z - deltaV1 * e2.z);
+
+      bitangent.x = f * (deltaU2 * e1.x - deltaU1 * e2.x);
+      bitangent.x = f * (deltaU2 * e1.y - deltaU1 * e2.y);
+      bitangent.x = f * (deltaU2 * e1.z - deltaU1 * e2.z);
+
+      model.tangents[i] = tangent;
+      model.tangents[i + 1] = tangent;
+      model.tangents[i + 2] = tangent;
+
+      model.bitangents[i] = bitangent;
+      model.bitangents[i + 1] = bitangent;
+      model.bitangents[i + 2] = bitangent;
+    }
+
+    for(unsigned int i = 0; i < model.numTriangles * 3; ++i) {
+      model.tangents[i] = glm::normalize(model.tangents[i]);
+    }
+    */
     for (unsigned int i = 0; i < model.numTriangles * 3; i += 3) {
       glm::vec3 delta_pos_1 = glm::vec3(model.vertices[i + 1].x, model.vertices[i + 1].y, model.vertices[i + 1].z) - glm::vec3(model.vertices[i].x, model.vertices[i].y, model.vertices[i].z);
       glm::vec3 delta_pos_2 = glm::vec3(model.vertices[i + 2].x, model.vertices[i + 2].y, model.vertices[i + 2].z) - glm::vec3(model.vertices[i].x, model.vertices[i].y, model.vertices[i].z);
@@ -454,7 +424,6 @@ void GLWidget::initializeGL() {
       if (glm::dot(glm::cross(normal, tangent), bitangent) < 0.0f) {
         tangent = tangent * -1.0f;
       }
-      qDebug() << glm::dot(normal, tangent);
     }
   }
 
@@ -466,7 +435,7 @@ void GLWidget::initializeGL() {
   }
 
   void GLWidget::paintGL() {
-    // (Re)calculate model view projection_
+    // (Re)calculate model view projection
     model_projection_ = glm::translate(glm::mat4(1), glm::vec3(-model_transform_->get_x_translation(), -model_transform_->get_y_translation(), 0));
     model_projection_ = glm::rotate(model_projection_, model_transform_->get_x_angle(), glm::vec3(1.0f, 0, 0));
     model_projection_ = glm::rotate(model_projection_, model_transform_->get_y_angle(), glm::vec3(0, 1.0f, 0));
@@ -474,50 +443,54 @@ void GLWidget::initializeGL() {
     float scale = model_transform_->get_scale();
     model_projection_ = glm::scale(model_projection_, glm::vec3(scale, scale, scale));
     MVP = projection_  * view_projection_ * model_projection_;
-    light_rotation_ += 0.2f;
-    if (light_rotation_ > 360.0f) {
-      light_rotation_ = 0.0f;
-    }
+    GLuint MatrixID = glGetUniformLocation(m_shader_.programId(), "MVP");
+    glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
+
+    // (Re)calculate model view normal projection
     glm::mat4 MVN = glm::inverse(glm::transpose(glm::mat4(view_projection_ * model_projection_)));
     GLuint NormalID = glGetUniformLocation(m_shader_.programId(), "MVN");
     glUniformMatrix4fv(NormalID, 1, GL_FALSE, &MVN[0][0]);
 
+    // View projection
     GLuint ViewID = glGetUniformLocation(m_shader_.programId(), "view");
     glUniformMatrix4fv(ViewID, 1, GL_FALSE, &view_projection_[0][0]);
 
-    float radian_rotation = glm::radians(light_rotation_);
-    glm::vec3 rotated_light = glm::mat3x3(glm::vec3(glm::cos(radian_rotation), 0, glm::sin(radian_rotation)), glm::vec3(0, 1, 0), glm::vec3(-glm::sin(radian_rotation), 0, glm::cos(radian_rotation))) * light_position_;
-    glUniform3f(glGetUniformLocation(m_shader_.programId(), "rotating_light"), rotated_light[0], rotated_light[1], rotated_light[2]);
-    glm::vec4 ambprod_rotating_light = glm::vec4(0.00f, 0.00f, 0.00f, 1.0f);
-    glm::vec4 diffprod_rotating_light = glm::vec4(0.0f, 0.3f, 0.0f, 1.0f);
-    glm::vec4 specprod_rotating_light = glm::vec4(0.0f, 0.6f, 0.0f, 1.0f);
-    glUniform4f(glGetUniformLocation(m_shader_.programId(), "ambprod_rotating_light"), ambprod_rotating_light[0], ambprod_rotating_light[1], ambprod_rotating_light[2], ambprod_rotating_light[3]);
-    glUniform4f(glGetUniformLocation(m_shader_.programId(), "diffprod_rotating_light"), diffprod_rotating_light[0], diffprod_rotating_light[1], diffprod_rotating_light[2], diffprod_rotating_light[3]);
-    glUniform4f(glGetUniformLocation(m_shader_.programId(), "specprod_rotating_light"), specprod_rotating_light[0], specprod_rotating_light[1], specprod_rotating_light[2], specprod_rotating_light[3]);
-    glUniform1f(glGetUniformLocation(m_shader_.programId(), "shine_rotating_light"), 500.0);
-
-    glm::vec3 static_light(0.0f, 0.0f, 10.0f);
-    glUniform3f(glGetUniformLocation(m_shader_.programId(), "static_light"), static_light[0], static_light[1], static_light[2]);
-    glm::vec4 ambprod_static_light = glm::vec4(0.01, 0.01, 0.01, 1.0);
-    glm::vec4 diffprod_static_light = glm::vec4(0.6, 0.6, 0.6, 1.0);
-    glm::vec4 specprod_static_light = glm::vec4(1, 1, 1, 1.0);
-    glUniform4f(glGetUniformLocation(m_shader_.programId(), "ambprod_static_light"), ambprod_static_light[0], ambprod_static_light[1], ambprod_static_light[2], ambprod_static_light[3]);
-    glUniform4f(glGetUniformLocation(m_shader_.programId(), "diffprod_static_light"), diffprod_static_light[0], diffprod_static_light[1], diffprod_static_light[2], diffprod_static_light[3]);
-    glUniform4f(glGetUniformLocation(m_shader_.programId(), "specprod_static_light"), specprod_static_light[0], specprod_static_light[1], specprod_static_light[2], specprod_static_light[3]);
-    glUniform1f(glGetUniformLocation(m_shader_.programId(), "shine_static_light"), 100.0);
-
-    GLuint MatrixID = glGetUniformLocation(m_shader_.programId(), "MVP");
-    glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
-
+    // Model projection
     GLuint modelID = glGetUniformLocation(m_shader_.programId(), "model");
     glUniformMatrix4fv(modelID, 1, GL_FALSE, &model_projection_[0][0]);
 
+    // Model projection
+    GLuint mvID = glGetUniformLocation(m_shader_.programId(), "MV");
+    glm::mat3 mv = glm::mat3(view_projection_ * model_projection_);
+    glUniformMatrix3fv(mvID, 1, GL_FALSE, &mv[0][0]);
+
+    // Rotating light
+    float radian_rotation = glm::radians(light_rotation_);
+    glm::vec3 rotated_light_1 = glm::mat3x3(glm::vec3(glm::cos(radian_rotation), 0, glm::sin(radian_rotation)), glm::vec3(0, 1, 0), glm::vec3(-glm::sin(radian_rotation), 0, glm::cos(radian_rotation))) * rotating_light_1_start_position_;
+    glUniform3f(glGetUniformLocation(m_shader_.programId(), "rotating_light"), rotated_light_1[0], rotated_light_1[1], rotated_light_1[2]);
+    glUniform4f(glGetUniformLocation(m_shader_.programId(), "ambprod_rotating_light"), ambprod_rotating_light_[0], ambprod_rotating_light_[1], ambprod_rotating_light_[2], ambprod_rotating_light_[3]);
+    glUniform4f(glGetUniformLocation(m_shader_.programId(), "diffprod_rotating_light"), diffprod_rotating_light_[0], diffprod_rotating_light_[1], diffprod_rotating_light_[2], diffprod_rotating_light_[3]);
+    glUniform4f(glGetUniformLocation(m_shader_.programId(), "specprod_rotating_light"), specprod_rotating_light_[0], specprod_rotating_light_[1], specprod_rotating_light_[2], specprod_rotating_light_[3]);
+    glUniform1f(glGetUniformLocation(m_shader_.programId(), "shine_rotating_light"), 500.0);
+
+    // Static light
+    glm::vec3 rotated_light_2 = glm::mat3x3(glm::vec3(1, 0, 0), glm::vec3(0, glm::cos(radian_rotation), -glm::sin(radian_rotation)), glm::vec3(0, glm::sin(radian_rotation), glm::cos(radian_rotation))) * rotating_light_2_start_position_;
+    glUniform3f(glGetUniformLocation(m_shader_.programId(), "static_light"), rotated_light_2[0], rotated_light_2[1], rotated_light_2[2]);
+    glUniform4f(glGetUniformLocation(m_shader_.programId(), "ambprod_static_light"), ambprod_static_light_[0], ambprod_static_light_[1], ambprod_static_light_[2], ambprod_static_light_[3]);
+    glUniform4f(glGetUniformLocation(m_shader_.programId(), "diffprod_static_light"), diffprod_static_light_[0], diffprod_static_light_[1], diffprod_static_light_[2], diffprod_static_light_[3]);
+    glUniform4f(glGetUniformLocation(m_shader_.programId(), "specprod_static_light"), specprod_static_light_[0], specprod_static_light_[1], specprod_static_light_[2], specprod_static_light_[3]);
+    glUniform1f(glGetUniformLocation(m_shader_.programId(), "shine_static_light"), 500.0f);
+
+    // Texture samplers
     GLuint texture_id_16s  = glGetUniformLocation(m_shader_.programId(), "texture_sampler_f16s");
     glUniform1i(texture_id_16s, 0);
     GLuint texture_id_f16t  = glGetUniformLocation(m_shader_.programId(), "texture_sampler_f16t");
     glUniform1i(texture_id_f16t, 1);
-    GLuint texture_id_normal  = glGetUniformLocation(m_shader_.programId(), "normal_texture_sampler");
+    GLuint texture_id_normal = glGetUniformLocation(m_shader_.programId(), "normal_texture_sampler");
     glUniform1i(texture_id_normal, 2);
+
+    // Normal mapping status
+    glUniform1i(glGetUniformLocation(m_shader_.programId(), "normal_mapping_active"), normal_mapping_active_);
 
     // Clear the buffer with the current clearing color
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -533,9 +506,9 @@ void GLWidget::initializeGL() {
   }
 
   void GLWidget::rotX(const int & change) {
-      if(model_transform_->rotateX(change)) {
-        repaint();
-      }
+    if (model_transform_->rotateX(change)) {
+      repaint();
+    }
   }
 
   void GLWidget::rotY(const int & change) {
@@ -645,12 +618,33 @@ void GLWidget::initializeGL() {
       last_cursor_y_ = 20000;
       mode_ = 1;
       break;
+
       case Qt::Key_T:  // Translate Mode
       qDebug() << "Translate mode_";
       last_cursor_x_ = 20000;
       last_cursor_y_ = 20000;
       mode_ = 2;
       break;
+
+      case Qt::Key_N:
+      normal_mapping_active_ = !normal_mapping_active_;
+      if (normal_mapping_active_) {
+        qDebug() << "Normal mapping turned on.";
+      } else {
+        qDebug() << "Normal mapping turned off.";
+      }
+      break;
+
+    case Qt::Key_1:
+    setFileName("Cube_KEYPRESS");
+    reallocate_buffers();
+    break;
+
+    case Qt::Key_2:
+    setFileName("F16_KEYPRESS");
+    reallocate_buffers();
+    break;
+
       // Color from assignment 2 removed
       case Qt::Key_Escape:
       QCoreApplication::instance()->quit();
@@ -685,7 +679,6 @@ void GLWidget::initializeGL() {
   }
 
   // Currently using an existing implementation to save time
-  // http://stackoverflow.com/a/20596072
   GLuint GLWidget::loadBmpImage(const std::string & imagepath) {
     qDebug() << "reading image" << imagepath.c_str();
 
@@ -769,4 +762,105 @@ void GLWidget::initializeGL() {
 
     // Return the ID of the texture we just created
     return textureID;
+  }
+
+  void GLWidget::timerTick() {
+    light_rotation_ += 0.2f;
+    if (light_rotation_ > 360.0f) {
+      light_rotation_ -= 360.0f;
+    }
+    repaint();
+  }
+
+  // Not used in Assigment-4
+  void GLWidget::loadSTLFile(const std::string & file_name) {
+    std::ifstream file_stream;
+    file_stream.open(file_name, std::ios_base::in | std::ios::binary);
+    if (file_stream.fail()) {
+      qWarning() << "An error occurred accessing the file does the file exist?";
+      file_stream.close();
+      model_ = std::move(GLWidget::ObjModel());
+    }
+
+    // Ignore header
+    file_stream.ignore(80, EOF);
+
+    // Number of triangles
+    unsigned int numTriangles;
+    file_stream.read(reinterpret_cast<char *>(&numTriangles), 4);
+    if (file_stream.fail()) {
+      qWarning() << "An error occurred reading from file";
+      file_stream.close();
+      model_ = std::move(GLWidget::ObjModel());
+      return;
+    }
+
+    GLWidget::ObjModel model;
+    model.numTriangles = numTriangles;
+    qDebug() << "Number of triangles:" << numTriangles;
+    model.normals = std::unique_ptr<glm::vec3[]>(new glm::vec3[numTriangles * 3]);
+    model.vertices = std::unique_ptr<glm::vec4[]>(new glm::vec4[numTriangles * 3]);
+    unsigned int triCounter = 0;
+    for (unsigned int i = 0; i < numTriangles; ++i) {
+      float normX, normY, normZ, x, y, z;
+      file_stream.read(reinterpret_cast<char *>(&normX), 4);
+      file_stream.read(reinterpret_cast<char *>(&normY), 4);
+      file_stream.read(reinterpret_cast<char *>(&normZ), 4);
+      file_stream.read(reinterpret_cast<char *>(&x), 4);
+      file_stream.read(reinterpret_cast<char *>(&y), 4);
+      file_stream.read(reinterpret_cast<char *>(&z), 4);
+      if (file_stream.fail()) {
+        qWarning() << "An error occurred reading from file";
+        file_stream.close();
+        model_ = std::move(GLWidget::ObjModel());
+        m_vertex_buffer_.allocate( model_.vertices.get(), model_.numTriangles * 3 * sizeof(glm::vec4) );
+        return;
+      }
+
+      // Normal Vector
+      model.normals[triCounter] = glm::vec3(normX, normY, normZ);
+      model.normals[triCounter+1] = glm::vec3(normX, normY, normZ);
+      model.normals[triCounter+2] = glm::vec3(normX, normY, normZ);
+      // Vertex 1
+      model.vertices[triCounter] = glm::vec4(x, y, z, 1.0f);
+
+      // Vertex 2
+      x = 0.0f;
+      y = 0.0f;
+      z = 0.0f;
+      file_stream.read(reinterpret_cast<char *>(&x), 4);
+      file_stream.read(reinterpret_cast<char *>(&y), 4);
+      file_stream.read(reinterpret_cast<char *>(&z), 4);
+      if (file_stream.fail()) {
+        qWarning() << "An error occurred reading from file";
+        file_stream.close();
+        model_ = std::move(GLWidget::ObjModel());
+        m_vertex_buffer_.allocate( model_.vertices.get(), model_.numTriangles * 3 * sizeof(glm::vec4) );
+        return;
+      }
+      model.vertices[triCounter+1] = glm::vec4(x, y, z, 1.0f);
+
+      // Vertex 3
+      x = 0.0f;
+      y = 0.0f;
+      z = 0.0f;
+      file_stream.read(reinterpret_cast<char *>(&x), 4);
+      file_stream.read(reinterpret_cast<char *>(&y), 4);
+      file_stream.read(reinterpret_cast<char *>(&z), 4);
+      if (file_stream.fail()) {
+        qWarning() << "An error occurred reading from file";
+        file_stream.close();
+        model_ = std::move(GLWidget::ObjModel());
+        m_vertex_buffer_.allocate( model_.vertices.get(), model_.numTriangles * 3 * sizeof(glm::vec4) );
+        return;
+      }
+      model.vertices[triCounter+2] = glm::vec4(x, y, z, 1.0f);
+
+      // Attribute byte count
+      file_stream.ignore(2, EOF);
+
+      triCounter+=3;
+    }
+    model_ = std::move(model);
+    return;
   }

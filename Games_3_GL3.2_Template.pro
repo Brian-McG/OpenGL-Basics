@@ -16,16 +16,13 @@ QMAKE_CXXFLAGS += -std=c++11
 target.path = boom
 INSTALLS += target
 win32 {
-copydata.commands = @call copy $$PWD/bunny.stl $$OUT_PWD
-copydata.commands = @call copy $$PWD/bunny.obj $$OUT_PWD
+# Unsupported, do it yourself.
 }
 macx {
-copydata.commands = cp $$PWD/bunny.stl $$OUT_PWD
-copydata.commands = cp $$PWD/bunny.obj $$OUT_PWD
+copydata.commands = cp -r $$PWD/models $$OUT_PWD
 }
 unix {
-copydata.commands = cp $$PWD/bunny.stl $$OUT_PWD
-copydata.commands = cp $$PWD/bunny.obj $$OUT_PWD
+copydata.commands = cp -r $$PWD/models $$OUT_PWD
 }
 first.depends = $(first) copydata
 export(first.depends)
