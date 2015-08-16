@@ -1,7 +1,7 @@
-Assignment 2: OpenGL Intro
+Assignment 4: OpenGL Shader
 -------------------------------------
 ##### **Author:** Brian Mc George (MCGBRI004)
-##### **Date:** 27-04-2015
+##### **Date:** 16-08-2015
 ----------
 ## Important Notices
 ### Controls
@@ -13,7 +13,7 @@ In order to use the mouse, one must **click and hold** the mouse button (in the 
 |`r`             | Switches to rotation mode.<br>Each press toggles between the different rotation axes.|
 |`s`             | Switches to scaling mode.|
 |`t`             | Switches to translation mode.|
-The program will write to the output terminal of the application which mode it is in. 
+The program will write to the output terminal of the application which mode it is in.
 
 #### Rotation via mouse
 ##### **X-Rotation**
@@ -31,27 +31,31 @@ Similarly, to decrease the size of the model the mouse must be moved downwards.
 #### Translation
 x-translations are done via the mouse by moving it left / right.
 y-translations are done via the mouse by moving it up / down.
-z-translations are done via the mouse wheel.
 
 #### Mouse Wheel
 All operations above (except x and y translation) can be done by rotating the mouse wheel.
 
-### Default model
-The default model should be the bunny. If for some reason the bunny fails to load or cannot be located the program will default to a cube model. The program has only been tested to run on Ubuntu. 
+### Normal mapping
+|Keyboard Option | Action                |
+|:-------------- |:------------          |
+|`n`             | Toggle normal mapping |
 
-### Colour Options
- 1. White
- 2. Red
- 3. Green
- 4. Blue
- 5. Lavender purple
+### Model Options
+The default model should be the cube.
+|Keyboard Option | Model loaded|
+|:-------------- |:------------|
+|`1`             | Cube        |
+|`2`             | F16         |
 
-### File Menu Options
-|Menu Option | Description|
-|:--------------|:------------|
-|`New`        | Opens a new application window|
-|`Open`            | Reads an stl file from system|
-|`Reset`            | Resets the scene to default state|
+The normal map for the F16 is not designed for the model. As such the lighting (when normal mapping is applied) is not as crisp as the cube.
+What occurs with the F16 (only when normal mapping is applied) is that you can see specular light on the model when the light is behind the model.
+My understanding of why this occurs is that the normal map has perturbed the normals such that not all the normals extend away from the model and when the light is behind the model those normals cause the specular light to show. I believe when you do shadow calculation it will correct this issue (which was not required for this practical).
+
+Normal mapping is **on** by default for the cube and **off** by default for the F16.
+
+### Lighting
+Two lights are included, they both start at (0, 0, 10). The red light rotates about the y-axis. The green light rotates about the x axis;
+When they are both near the same location they should produce a yellow color.
 
 ### To Run this program in Qt Creator
 Simply open the project and click run.
