@@ -83,10 +83,12 @@ void GLWidget::initializeGL() {
     std::string normal_map_name;
     if (filename_ == "" || filename_ == "Cube_KEYPRESS") {
       loadObjImage(CUBE_OBJ);
+      setNormalMapping(true);
       texture_1_name = CUBE_TEXTURE;
       texture_2_name = F16T_texture;
       normal_map_name = CUBE_NORMAL;
     } else if (filename_ == "F16_KEYPRESS") {
+      setNormalMapping(false);
       loadObjImage(F16);
       texture_1_name = F16S_texture;
       texture_2_name = F16T_texture;
@@ -627,12 +629,7 @@ void GLWidget::initializeGL() {
       break;
 
       case Qt::Key_N:
-      normal_mapping_active_ = !normal_mapping_active_;
-      if (normal_mapping_active_) {
-        qDebug() << "Normal mapping turned on.";
-      } else {
-        qDebug() << "Normal mapping turned off.";
-      }
+      setNormalMapping(!normal_mapping_active_);
       break;
 
     case Qt::Key_1:
@@ -770,6 +767,15 @@ void GLWidget::initializeGL() {
       light_rotation_ -= 360.0f;
     }
     repaint();
+  }
+
+  void GLWidget::setNormalMapping(bool state) {
+    normal_mapping_active_ = state;
+    if (normal_mapping_active_) {
+      qDebug() << "Normal mapping turned on.";
+    } else {
+      qDebug() << "Normal mapping turned off.";
+    }
   }
 
   // Not used in Assigment-4

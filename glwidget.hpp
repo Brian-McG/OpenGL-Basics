@@ -36,6 +36,7 @@ class GLWidget : public QGLWidget {
   void setFileName(const std::string & name);
   GLuint loadBmpImage(const std::string & imagepath);
   void setTangentVectors(ObjModel & model);
+  void setNormalMapping(bool state);
 
  protected:
   virtual void initializeGL();
@@ -54,6 +55,7 @@ class GLWidget : public QGLWidget {
   void rotZ(const int & change);
   void scaleBy(const int & change);
   bool prepareShaderProgram(const QString& vertexShaderPath, const QString& fragmentShaderPath);
+
 
   QGLFormat desiredFormat();
   glm::mat4 projection_;
