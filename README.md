@@ -42,6 +42,7 @@ All operations above (except x and y translation) can be done by rotating the mo
 
 ### Model Options
 The default model should be the cube.
+
 |Keyboard Option | Model loaded|
 |:-------------- |:------------|
 |`1`             | Cube        |
@@ -51,7 +52,8 @@ The normal map for the F16 is not designed for the model. As such the lighting (
 What occurs with the F16 (only when normal mapping is applied) is that you can see specular light on the model when the light is behind the model.
 My understanding of why this occurs is that the normal map has perturbed the normals such that not all the normals extend away from the model and when the light is behind the model those normals cause the specular light to show. I believe when you do shadow calculation it will correct this issue (which was not required for this practical).
 
-Normal mapping is **on** by default for the cube and **off** by default for the F16.
+Normal mapping is **on** by default for the **cube**.<br>
+Normal mapping is **off** by default for the **F16**.
 
 ### Lighting
 Two lights are included, they both start at (0, 0, 10). The red light rotates about the y-axis. The green light rotates about the x axis;
