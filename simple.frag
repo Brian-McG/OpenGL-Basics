@@ -5,19 +5,26 @@
 // Output color
 out vec4 out_col;
 
-// Rotating light color
+// Rotating light 1
 uniform vec4 ambprod_rotating_light_1;
 uniform vec4 diffprod_rotating_light_1;
 uniform vec4 specprod_rotating_light_1;
 uniform float shine_rotating_light_1;
 in vec3 light_position_rotating_1;
 
-// Static light color
+// rotating light 2
 uniform vec4 ambprod_rotating_light_2;
 uniform vec4 diffprod_rotating_light_2;
 uniform vec4 specprod_rotating_light_2;
 uniform float shine_rotating_light_2;
 in vec3 light_position_rotating_2;
+
+// rotating light 3
+uniform vec4 ambprod_rotating_light_3;
+uniform vec4 diffprod_rotating_light_3;
+uniform vec4 specprod_rotating_light_3;
+uniform float shine_rotating_light_3;
+in vec3 light_position_rotating_3;
 
 in vec3 norm;		// Camera space normal
 in vec3 eye;		// Camera space eye to vertex
@@ -35,44 +42,46 @@ in mat3 TBN;
 
 void main(void)
 {
-  vec3 NN, EE, LRN_1, LRN_2;
-  float cosTheta;
-  vec3 r;
-  float cosAlpha;
+  vec3 NN, EE, LRN_1, LRN_2, LRN_3;
   if (normal_mapping_active) {
     NN = texture(normal_texture_sampler, uv_fragment).xyz;
     NN = 2.0 * NN - 1;
     NN = TBN * normalize(NN);
     NN = normalize(NN);
-    EE = normalize(eye);
-    LRN_1 = normalize(light_position_rotating_1);
-    LRN_2 = normalize(light_position_rotating_2);
   } else {
     NN = normalize(norm);
-    EE = normalize(eye);
-    LRN_1 = normalize(light_position_rotating_1);
-    LRN_2 = normalize(light_position_rotating_2);
   }
+  EE = normalize(eye);
+  LRN_1 = normalize(light_position_rotating_1);
+  LRN_2 = normalize(light_position_rotating_2);
+  LRN_3 = normalize(light_position_rotating_3);
 
+  // Rotating light 1
   vec4 amb_rotating_1, diff_rotating_1, spec_rotating_1;
-  vec3 HR = normalize(LRN_1 + EE);
-
-  vec4 amb_rotating_2, diff_rotating_2, spec_rotating_2;
-  vec3 HS = normalize(LRN_2 + EE);
-
-  // Rotating light
+  vec3 HR_1 = normalize(LRN_1 + EE);
   float kd_rotating_1 = max(dot(LRN_1,NN), 0.0);
-  float ks_rotating_1 = pow(max(dot(NN,HR),0.0), shine_rotating_light_1);
+  float ks_rotating_1 = pow(max(dot(NN,HR_1), 0.0), shine_rotating_light_1);
   amb_rotating_1 = ambprod_rotating_light_1;
   diff_rotating_1 = kd_rotating_1 * diffprod_rotating_light_1;
   spec_rotating_1 = ks_rotating_1 * specprod_rotating_light_1;
 
-  // Static light
+  // Rotating light 2
+  vec4 amb_rotating_2, diff_rotating_2, spec_rotating_2;
+  vec3 HR_2 = normalize(LRN_2 + EE);
   float kd_rotating_2 = max(dot(LRN_2,NN), 0.0);
-  float ks_rotating_2 = pow(max(dot(NN,HS),0.0), shine_rotating_light_2);
+  float ks_rotating_2 = pow(max(dot(NN,HR_2), 0.0), shine_rotating_light_2);
   amb_rotating_2 = ambprod_rotating_light_2;
   diff_rotating_2 = kd_rotating_2 * diffprod_rotating_light_2;
   spec_rotating_2 = ks_rotating_2 * specprod_rotating_light_2;
+
+  // Rotating light 3
+  vec4 amb_rotating_3, diff_rotating_3, spec_rotating_3;
+  vec3 HR_3 = normalize(LRN_3 + EE);
+  float kd_rotating_3 = max(dot(LRN_3,NN), 0.0);
+  float ks_rotating_3 = pow(max(dot(NN,HR_3), 0.0), shine_rotating_light_3);
+  amb_rotating_3 = ambprod_rotating_light_3;
+  diff_rotating_3 = kd_rotating_3 * diffprod_rotating_light_3;
+  spec_rotating_3 = ks_rotating_3 * specprod_rotating_light_3;
 
   // Draw correct texture
   vec3 texture;
@@ -83,12 +92,13 @@ void main(void)
   } else {  // Error
     texture = vec3(1.0, 0, 0);
   }
-  vec3 rotating_lighting = (texture * amb_rotating_1.rgb) + (texture * diff_rotating_1.rgb) + (texture * spec_rotating_1.rgb);
-  vec3 static_lighting = (texture * amb_rotating_2.rgb) + (texture * diff_rotating_2.rgb) + (texture * spec_rotating_2.rgb);
+  vec3 rotating_lighting_1 = (texture * amb_rotating_1.rgb) + (texture * diff_rotating_1.rgb) + (texture * spec_rotating_1.rgb);
+  vec3 rotating_lighting_2 = (texture * amb_rotating_2.rgb) + (texture * diff_rotating_2.rgb) + (texture * spec_rotating_2.rgb);
+  vec3 rotating_lighting_3 = (texture * amb_rotating_3.rgb) + (texture * diff_rotating_3.rgb) + (texture * spec_rotating_3.rgb);
   out_col = vec4(
-                  clamp(static_lighting.r + rotating_lighting.r, 0, 1),
-                  clamp(static_lighting.g + rotating_lighting.g, 0, 1),
-                  clamp(static_lighting.b + rotating_lighting.b, 0, 1),
+                  clamp(rotating_lighting_1.r + rotating_lighting_2.r + rotating_lighting_3.r, 0, 1),
+                  clamp(rotating_lighting_1.g + rotating_lighting_2.g + rotating_lighting_3.g, 0, 1),
+                  clamp(rotating_lighting_1.b + rotating_lighting_2.b + rotating_lighting_3.b, 0, 1),
                   1.0
                 );
 }

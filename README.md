@@ -8,11 +8,11 @@ Assignment 4: OpenGL Shader
 Translation, rotation and scaling operations can be done via the mouse or via the mouse wheel.
 In order to use the mouse, one must **click and hold** the mouse button (in the application window) and then move the mouse in the desired direction.
 
-|Keyboard Option | Description|
-|:-------------- |:------------|
+|Keyboard Option | Description                                                                          |
+|:-------------- |:-------------------------------------------------------------------------------------|
 |`r`             | Switches to rotation mode.<br>Each press toggles between the different rotation axes.|
-|`s`             | Switches to scaling mode.|
-|`t`             | Switches to translation mode.|
+|`s`             | Switches to scaling mode.                                                            |
+|`t`             | Switches to translation mode.                                                        |
 The program will write to the output terminal of the application which mode it is in.
 
 #### Rotation via mouse
@@ -39,6 +39,7 @@ All operations above (except x and y translation) can be done by rotating the mo
 |Keyboard Option | Action                |
 |:-------------- |:------------          |
 |`n`             | Toggle normal mapping |
+The program will write to the output terminal of the application to indicate what the normal mapping state has been changed to.
 
 ### Model Options
 The default model should be the cube.
@@ -56,8 +57,11 @@ Normal mapping is **on** by default for the **cube**.<br>
 Normal mapping is **off** by default for the **F16**.
 
 ### Lighting
-Two lights are included, they both start at (0, 0, 10). The red light rotates about the y-axis. The green light rotates about the x axis;
-When they are both near the same location they should produce a yellow color.
+Three lights are included.<br>
+The green light rotates about the x axis and starts at (0, 0, 10).<br>
+The red light rotates about the y-axis and starts at (0, 0, 10).<br>
+The blue light rotates about the z-axis and starts at (-10, 0, 0).<br>
+The colors should combine when multiple lights fall on the same spot.
 
 ### To Run this program in Qt Creator
 Simply open the project and click run.

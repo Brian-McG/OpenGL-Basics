@@ -83,17 +83,23 @@ class GLWidget : public QGLWidget {
   QOpenGLBuffer m_bitangent_buffer_;
 
   // Lights
-  // Rotating light
+  // Rotating light 1
   glm::vec3 rotating_light_1_start_position_ = glm::vec3(0.0f, 0.0f, 10.0f);
   glm::vec4 ambprod_rotating_light_1_ = glm::vec4(0.01f, 0.01f, 0.01f, 1.0f);
   glm::vec4 diffprod_rotating_light_1_ = glm::vec4(0.4f, 0.0f, 0.0f, 1.0f);
   glm::vec4 specprod_rotating_light_1_ = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
   float shine_rotating_light_1_ = 500.0f;
-  // Static light
+  // Rotating light 2
   glm::vec3 rotating_light_2_start_position_ = glm::vec3(0.0f, 0.0f, 10.0f);
   glm::vec4 ambprod_rotating_light_2_ = glm::vec4(0.01f, 0.01f, 0.01f, 1.0f);
   glm::vec4 diffprod_rotating_light_2_ = glm::vec4(0.0f, 0.4f, 0.0f, 1.0f);
   glm::vec4 specprod_rotating_light_2_ = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
   float shine_rotating_light_2_ = 500.0f;
+  // Rotating light 3
+  glm::vec3 rotating_light_3_start_position_ = glm::vec3(-10.0f, 0.0f, 0.0f);
+  glm::vec4 ambprod_rotating_light_3_ = glm::vec4(0.01f, 0.01f, 0.01f, 1.0f);
+  glm::vec4 diffprod_rotating_light_3_ = glm::vec4(0.0f, 0.0f, 0.4f, 1.0f);
+  glm::vec4 specprod_rotating_light_3_ = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+  float shine_rotating_light_3_ = 500.0f;
 };
 #endif  // GLWIDGET_H_

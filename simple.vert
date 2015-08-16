@@ -9,6 +9,7 @@ layout(location = 4) in vec3 tangent;
 layout(location = 5) in vec3 bitangent;
 uniform vec3 rotating_light_1;
 uniform vec3 rotating_light_2;
+uniform vec3 rotating_light_3;
 uniform mat4 MVP;
 uniform mat3 MV;
 uniform mat4 MVN;
@@ -17,6 +18,7 @@ uniform mat4 view;
 out vec3 norm;
 out vec3 light_position_rotating_1;
 out vec3 light_position_rotating_2;
+out vec3 light_position_rotating_3;
 out vec3 eye;
 out vec2 uv_fragment;
 out mat3 TBN;
@@ -28,6 +30,7 @@ void main( void ) {
   eye = (vec4(0, 0, 0, 1) - (view * model * vec4(vertex.xyz, 1.0))).xyz;
   light_position_rotating_1 = (view * vec4(rotating_light_1.xyz, 1.0)).xyz + eye.xyz;
   light_position_rotating_2 = (view * vec4(rotating_light_2.xyz, 1.0)).xyz + eye.xyz;
+  light_position_rotating_3 = (view * vec4(rotating_light_3.xyz, 1.0)).xyz + eye.xyz;
   uv_fragment = uv;
   sample_index = sampler_index;
 

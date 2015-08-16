@@ -27,7 +27,7 @@
 #define F16_normal_map2 "models/F16/normal_map2.bmp"
 #define F16_normal_map3 "models/F16/bricks_norm.bmp"
 #define CUBE_OBJ "models/Cube/cube.obj"
-#define CUBE_TEXTURE "models/Cube/randomtest.bmp"
+#define CUBE_TEXTURE "models/Cube/sampleTexture.bmp"
 #define CUBE_NORMAL "models/Cube/sampleNormal.bmp"
 
 GLWidget::GLWidget(const QGLFormat& format, QWidget* parent)
@@ -263,7 +263,7 @@ void GLWidget::initializeGL() {
     glm::mat3 mv = glm::mat3(view_projection_ * model_projection_);
     glUniformMatrix3fv(mvID, 1, GL_FALSE, &mv[0][0]);
 
-    // Rotating light
+    // Rotating light 1
     float radian_rotation = glm::radians(light_rotation_);
     glm::vec3 rotated_light_1 = glm::mat3x3(glm::vec3(glm::cos(radian_rotation), 0, glm::sin(radian_rotation)), glm::vec3(0, 1, 0), glm::vec3(-glm::sin(radian_rotation), 0, glm::cos(radian_rotation))) * rotating_light_1_start_position_;
     glUniform3f(glGetUniformLocation(m_shader_.programId(), "rotating_light_1"), rotated_light_1[0], rotated_light_1[1], rotated_light_1[2]);
@@ -272,13 +272,21 @@ void GLWidget::initializeGL() {
     glUniform4f(glGetUniformLocation(m_shader_.programId(), "specprod_rotating_light_1"), specprod_rotating_light_1_[0], specprod_rotating_light_1_[1], specprod_rotating_light_1_[2], specprod_rotating_light_1_[3]);
     glUniform1f(glGetUniformLocation(m_shader_.programId(), "shine_rotating_light_1"), shine_rotating_light_1_);
 
-    // Static light
+    // Rotating light 2
     glm::vec3 rotated_light_2 = glm::mat3x3(glm::vec3(1, 0, 0), glm::vec3(0, glm::cos(radian_rotation), -glm::sin(radian_rotation)), glm::vec3(0, glm::sin(radian_rotation), glm::cos(radian_rotation))) * rotating_light_2_start_position_;
     glUniform3f(glGetUniformLocation(m_shader_.programId(), "rotating_light_2"), rotated_light_2[0], rotated_light_2[1], rotated_light_2[2]);
     glUniform4f(glGetUniformLocation(m_shader_.programId(), "ambprod_rotating_light_2"), ambprod_rotating_light_2_[0], ambprod_rotating_light_2_[1], ambprod_rotating_light_2_[2], ambprod_rotating_light_2_[3]);
     glUniform4f(glGetUniformLocation(m_shader_.programId(), "diffprod_rotating_light_2"), diffprod_rotating_light_2_[0], diffprod_rotating_light_2_[1], diffprod_rotating_light_2_[2], diffprod_rotating_light_2_[3]);
     glUniform4f(glGetUniformLocation(m_shader_.programId(), "specprod_rotating_light_2"), specprod_rotating_light_2_[0], specprod_rotating_light_2_[1], specprod_rotating_light_2_[2], specprod_rotating_light_2_[3]);
     glUniform1f(glGetUniformLocation(m_shader_.programId(), "shine_rotating_light_2"), shine_rotating_light_2_);
+
+    // Rotating light 3
+    glm::vec3 rotated_light_3 = glm::mat3x3(glm::vec3(glm::cos(radian_rotation), -glm::sin(radian_rotation), 0), glm::vec3(glm::sin(radian_rotation), glm::cos(radian_rotation), 0), glm::vec3(0, 0, 1)) * rotating_light_3_start_position_;
+    glUniform3f(glGetUniformLocation(m_shader_.programId(), "rotating_light_3"), rotated_light_3[0], rotated_light_3[1], rotated_light_3[2]);
+    glUniform4f(glGetUniformLocation(m_shader_.programId(), "ambprod_rotating_light_3"), ambprod_rotating_light_3_[0], ambprod_rotating_light_3_[1], ambprod_rotating_light_3_[2], ambprod_rotating_light_3_[3]);
+    glUniform4f(glGetUniformLocation(m_shader_.programId(), "diffprod_rotating_light_3"), diffprod_rotating_light_3_[0], diffprod_rotating_light_3_[1], diffprod_rotating_light_3_[2], diffprod_rotating_light_3_[3]);
+    glUniform4f(glGetUniformLocation(m_shader_.programId(), "specprod_rotating_light_3"), specprod_rotating_light_3_[0], specprod_rotating_light_3_[1], specprod_rotating_light_3_[2], specprod_rotating_light_3_[3]);
+    glUniform1f(glGetUniformLocation(m_shader_.programId(), "shine_rotating_light_3"), shine_rotating_light_3_);
 
     // Texture samplers
     GLuint texture_id_16s  = glGetUniformLocation(m_shader_.programId(), "texture_sampler_f16s");
