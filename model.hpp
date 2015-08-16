@@ -37,7 +37,7 @@ class Model {
   float get_z_translation();
   void reset();
   struct ObjModel {
-    int number_of_triangles = 0;
+    unsigned int number_of_triangles = 0;
     std::unique_ptr<glm::vec4[]> vertices;
     std::unique_ptr<glm::vec3[]> normals;
     std::unique_ptr<glm::vec2[]> uvs;

@@ -51,7 +51,7 @@ The default model should be the cube.
 
 The normal map for the F16 is not designed for the model. As such the lighting (when normal mapping is applied) is not as crisp as the cube.
 What occurs with the F16 (only when normal mapping is applied) is that you can see specular light on the model when the light is behind the model.
-My understanding of why this occurs is that the normal map has perturbed the normals such that not all the normals extend away from the model and when the light is behind the model those normals cause the specular light to show. I believe when you do shadow calculation it will correct this issue (which was not required for this practical).
+My understanding of why this occurs is that the normal map has perturbed the normals such that not all the normals extend away from the model. When the light is behind the model, those normals cause the specular light to show. I believe when you do shadow calculation it will correct this issue (which was not required for this practical).
 
 Normal mapping is **on** by default for the **cube**.<br>
 Normal mapping is **off** by default for the **F16**.

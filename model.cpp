@@ -56,12 +56,11 @@ mcgbri004::Model::ObjModel mcgbri004::Model::loadObjImage(const std::string & fi
       line = line.substr(2);
       std::istringstream vertex_set(line);
       std::string vertex_values;
-      unsigned int vertex_index[3], uv_index[3], normal_index[3];
       for (int i = 0; i < 3; ++i) {
         texture_indices.push_back(texture_index);
         vertex_set >> vertex_values;
         unsigned int count = 0;
-        int index = vertex_values.find("/");
+        size_t index = vertex_values.find("/");
         while (index != std::string::npos || vertex_values != "") {
           std::string first_value;
           if (index != std::string::npos) {
