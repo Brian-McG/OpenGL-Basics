@@ -3,6 +3,12 @@ Assignment 4: OpenGL Shader
 ##### **Author:** Brian Mc George (MCGBRI004)
 ##### **Date:** 16-08-2015
 ----------
+## Install
+### Ubuntu
+  1. sudo apt-get install libgl1-mesa-dev qtcreator libglew-dev libqtcore4 libqtgui4 libqt4-opengl libqt4-opengl-dev
+  2. Open in qtcreator and run.
+<br>or... build with qmake.
+
 ## Important Notices
 ### Controls
 Translation, rotation and scaling operations can be done via the mouse or via the mouse wheel.
@@ -62,9 +68,6 @@ The green light rotates about the x axis and starts at (0, 0, 10).<br>
 The red light rotates about the y-axis and starts at (0, 0, 10).<br>
 The blue light rotates about the z-axis and starts at (-10, 0, 0).<br>
 The colors should combine when multiple lights fall on the same spot.
-
-### To Run this program in Qt Creator
-Simply open the project and click run.
 
 ### Default camera position
 By default the camera sits at (0,0,3) and looks at (0,0,0).
